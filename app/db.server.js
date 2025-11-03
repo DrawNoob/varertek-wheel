@@ -8,4 +8,8 @@ if (process.env.NODE_ENV !== "production") {
 
 const prisma = global.prismaGlobal ?? new PrismaClient();
 
+// 👉 іменований експорт (для `import { prisma } ...`)
+export { prisma };
+
+// 👉 дефолтний експорт (на випадок, якщо десь так імпортували)
 export default prisma;

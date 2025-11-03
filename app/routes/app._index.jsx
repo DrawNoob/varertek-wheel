@@ -119,7 +119,7 @@ export default function Home() {
 
       <s-section slot="aside" heading="Підтримка">
         <s-paragraph>
-          Питання/ідеї: <s-link href="mailto:support@vadertek.io">p.leiko@vadertek.io</s-link>
+          Питання/ідеї: <s-link href="mailto:support@vadertek.io">p.leiko@vadertek.com</s-link>
         </s-paragraph>
       </s-section>
     </s-page>
