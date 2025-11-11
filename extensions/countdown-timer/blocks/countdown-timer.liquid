@@ -1,0 +1,46 @@
+{% # theme-check-disable ValidSchema %}
+
+<div class="vt-countdown-banner" id="vt-countdown-{{ block.id }}">
+  <div class="vt-countdown-inner">
+    <span class="vt-countdown-label">{{ block.settings.heading }}</span>
+    <div class="vt-countdown-values">
+      <div class="vt-countdown-item">
+        <span class="vt-countdown-number" data-unit="days">00</span>
+        <span class="vt-countdown-title">d</span>
+      </div>
+      <div class="vt-countdown-sep">:</div>
+      <div class="vt-countdown-item">
+        <span class="vt-countdown-number" data-unit="hours">00</span>
+        <span class="vt-countdown-title">h</span>
+      </div>
+      <div class="vt-countdown-sep">:</div>
+      <div class="vt-countdown-item">
+        <span class="vt-countdown-number" data-unit="minutes">00</span>
+        <span class="vt-countdown-title">m</span>
+      </div>
+      <div class="vt-countdown-sep">:</div>
+      <div class="vt-countdown-item">
+        <span class="vt-countdown-number" data-unit="seconds">00</span>
+        <span class="vt-countdown-title">s</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<link rel="stylesheet" href="{{ 'countdown-timer.css' | asset_url }}">
+<script src="{{ 'countdown-timer.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Countdown timer",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Заголовок",
+      "default": "До кінця акції залишилось:"
+    }
+  ]
+}
+{% endschema %}
