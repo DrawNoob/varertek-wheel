@@ -1,33 +1,98 @@
 {% # theme-check-disable ValidSchema %}
 
-<div class="vt-countdown-banner" id="vt-countdown-{{ block.id }}">
-  <div class="vt-countdown-inner">
-    <span class="vt-countdown-label">{{ block.settings.heading }}</span>
+{% assign uid = block.id %}
+{% assign end_date = shop.metafields.vt.countdown_end.value %}
+
+<div
+  class="vt-countdown-banner vt-countdown-{{ uid }}"
+  id="vt-countdown-{{ uid }}"
+  {% if end_date %}
+    data-end="{{ end_date }}"
+  {% endif %}
+>
+  <div class="vt-countdown-inner vt-countdown-inner-{{ uid }}">
+    <span class="vt-countdown-label">
+      {{ block.settings.heading }}
+    </span>
     <div class="vt-countdown-values">
       <div class="vt-countdown-item">
         <span class="vt-countdown-number" data-unit="days">00</span>
-        <span class="vt-countdown-title">d</span>
+        {% if block.settings.show_labels %}
+          <span class="vt-countdown-title">{{ block.settings.label_days }}</span>
+        {% endif %}
       </div>
       <div class="vt-countdown-sep">:</div>
       <div class="vt-countdown-item">
         <span class="vt-countdown-number" data-unit="hours">00</span>
-        <span class="vt-countdown-title">h</span>
+        {% if block.settings.show_labels %}
+          <span class="vt-countdown-title">{{ block.settings.label_hours }}</span>
+        {% endif %}
       </div>
       <div class="vt-countdown-sep">:</div>
       <div class="vt-countdown-item">
         <span class="vt-countdown-number" data-unit="minutes">00</span>
-        <span class="vt-countdown-title">m</span>
+        {% if block.settings.show_labels %}
+          <span class="vt-countdown-title">{{ block.settings.label_minutes }}</span>
+        {% endif %}
       </div>
       <div class="vt-countdown-sep">:</div>
       <div class="vt-countdown-item">
         <span class="vt-countdown-number" data-unit="seconds">00</span>
-        <span class="vt-countdown-title">s</span>
+        {% if block.settings.show_labels %}
+          <span class="vt-countdown-title">{{ block.settings.label_seconds }}</span>
+        {% endif %}
       </div>
     </div>
   </div>
 </div>
 
-<link rel="stylesheet" href="{{ 'countdown-timer.css' | asset_url }}">
+<style>
+  .vt-countdown-{{ uid }} {
+    background: {{ block.settings.bg_color }};
+    color: {{ block.settings.text_color }};
+    padding: 14px 20px;
+    text-align: {{ block.settings.align }};
+  }
+  .vt-countdown-inner-{{ uid }} {
+    display: inline-flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .vt-countdown-{{ uid }} .vt-countdown-values {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .vt-countdown-{{ uid }} .vt-countdown-item {
+    background: {{ block.settings.item_bg }};
+    border-radius: {{ block.settings.item_radius }}px;
+    padding: 4px 7px 5px;
+    min-width: 46px;
+  }
+  .vt-countdown-{{ uid }} .vt-countdown-number {
+    display: block;
+    font-size: 16px;
+    font-weight: 600;
+    color: {{ block.settings.item_text_color }};
+  }
+  .vt-countdown-{{ uid }} .vt-countdown-title {
+    font-size: 11px;
+    opacity: .7;
+    color: {{ block.settings.item_text_color }};
+  }
+  .vt-countdown-{{ uid }} .vt-countdown-sep {
+    font-weight: 600;
+    color: {{ block.settings.text_color }};
+  }
+  @media (max-width: 540px) {
+    .vt-countdown-inner-{{ uid }} {
+      justify-content: center;
+    }
+  }
+</style>
+
 <script src="{{ 'countdown-timer.js' | asset_url }}" defer></script>
 
 {% schema %}
@@ -40,6 +105,80 @@
       "id": "heading",
       "label": "Заголовок",
       "default": "До кінця акції залишилось:"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Фон банера",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Колір тексту",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "item_bg",
+      "label": "Фон елементів (d/h/m/s)",
+      "default": "#1F2937"
+    },
+    {
+      "type": "color",
+      "id": "item_text_color",
+      "label": "Колір цифр",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "range",
+      "id": "item_radius",
+      "label": "Заокруглення елементів",
+      "min": 0,
+      "max": 20,
+      "step": 1,
+      "default": 6
+    },
+    {
+      "type": "select",
+      "id": "align",
+      "label": "Вирівнювання",
+      "default": "center",
+      "options": [
+        { "value": "left", "label": "Ліворуч" },
+        { "value": "center", "label": "По центру" },
+        { "value": "right", "label": "Праворуч" }
+      ]
+    },
+    {
+      "type": "checkbox",
+      "id": "show_labels",
+      "label": "Показувати підписи d/h/m/s",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "label_days",
+      "label": "Підпис для днів",
+      "default": "d"
+    },
+    {
+      "type": "text",
+      "id": "label_hours",
+      "label": "Підпис для годин",
+      "default": "h"
+    },
+    {
+      "type": "text",
+      "id": "label_minutes",
+      "label": "Підпис для хвилин",
+      "default": "m"
+    },
+    {
+      "type": "text",
+      "id": "label_seconds",
+      "label": "Підпис для секунд",
+      "default": "s"
     }
   ]
 }
