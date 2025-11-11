@@ -2,7 +2,7 @@
 
 client_id = "9bb6a21e74ae17ec2ffba79a698024a5"
 name = "vadertek-wheel"
-application_url = "https://example.com"
+application_url = "https://varertek-wheel.onrender.com"
 embedded = true
 
 [build]
