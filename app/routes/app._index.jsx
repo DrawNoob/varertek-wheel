@@ -7,7 +7,7 @@ export const loader = async ({ request }) => {
   await authenticate.admin(request);
 
   const meta = {
-    appName: "Wheel of Fortune — VADERTEK corp.",
+    appName: "Countdown Timer — VADERTEK corp.",
     version:
       process.env.APP_VERSION ||
       process.env.npm_package_version ||
@@ -20,17 +20,17 @@ export const loader = async ({ request }) => {
   // Мінімальний changelog (пізніше можна підміняти з БД)
   const changelog = [
     {
-      date: "2025-02-24",
+      date: "2025-11-03",
       title: "Release Alpha Version",
       items: ["Запуск апки в стор", "Активація в кастомайзі"],
     },
     {
-      date: "2025-02-24",
+      date: "2025-11-02",
       title: "Settings: ON/OFF",
       items: ["Додано тумблер увімкн./вимкн. віджета", "Збереження у Prisma"],
     },
     {
-      date: "2025-02-23",
+      date: "2025-11-01",
       title: "Початковий шаблон",
       items: ["Генерація продуктів через Admin GraphQL", "Початкова структура апки"],
     },
@@ -47,9 +47,9 @@ export default function Home() {
       {/* Hero / Опис */}
       <s-section>
         <s-paragraph>
-          Легка апка для розіграшу знижок через віджет <b>Wheel of Fortune</b>.
-          Керуйте показом колеса на вітрині, відстежуйте результати та інтегруйтеся з вашими
-          інструментами маркетингу.
+          Легка апка для зворотнього відліку через віджет <b>Countdown Timer</b>.
+          Налаштовуйту дату та выдображення вагошо таймеру, та выдслытковуйте
+          користувачів.
         </s-paragraph>
 
         <s-stack direction="inline" gap="base">
