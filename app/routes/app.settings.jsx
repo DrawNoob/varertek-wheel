@@ -4,15 +4,16 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import TimerSettings from "../components/TimerSettings.jsx";
 
+// loader
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
 
   const resp = await admin.graphql(`
     {
       shop {
-        id
-        metafield(namespace: "vt", key: "countdown_end") {
+        metafield(namespace: "vtr", key: "countdown_end") {
           value
+          type
         }
       }
     }
@@ -24,10 +25,13 @@ export const loader = async ({ request }) => {
   };
 };
 
+
+// action
 export const action = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
   const form = await request.formData();
-  const endDate = form.get("endDate");
+  const endDateLocal = form.get("endDate"); 
+  const endDateIso = new Date(endDateLocal).toISOString(); 
 
   const shopResp = await admin.graphql(`{ shop { id } }`);
   const shopJson = await shopResp.json();
@@ -35,7 +39,7 @@ export const action = async ({ request }) => {
 
   const write = await admin.graphql(
     `
-      mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+      mutation SetCountdown($metafields: [MetafieldsSetInput!]!) {
         metafieldsSet(metafields: $metafields) {
           userErrors { field message }
         }
@@ -46,10 +50,10 @@ export const action = async ({ request }) => {
         metafields: [
           {
             ownerId: shopId,
-            namespace: "vt",
+            namespace: "vtr",                 
             key: "countdown_end",
-            type: "single_line_text_field",
-            value: endDate,
+            type: "date_time",              
+            value: endDateIso,
           },
         ],
       },
@@ -59,11 +63,10 @@ export const action = async ({ request }) => {
   const writeJson = await write.json();
   const errs = writeJson.data.metafieldsSet.userErrors;
 
-  return {
-    ok: !errs?.length,
-    endDate,
-  };
+  return { ok: !errs?.length, endDate: endDateIso };
 };
+
+
 
 export const headers = (h) => boundary.headers(h);
 
@@ -73,7 +76,6 @@ export default function SettingsPage() {
 
   return (
     <s-page heading="Налаштування таймера (Countdown Timer)">
-      {/* одна форма, всередині все керується */}
       <fetcher.Form method="post">
         <TimerSettings initialEndDate={endDate} fetcher={fetcher} />
       </fetcher.Form>

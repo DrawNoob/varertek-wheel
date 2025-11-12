@@ -1,8 +1,6 @@
-// app/components/TimerSettings.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export default function TimerSettings({ initialEndDate, fetcher }) {
-  // приведемо бекову дату до формату для datetime-local
   const toInput = (str) => (str ? str.slice(0, 16) : "");
 
   const [value, setValue] = useState(() => {
@@ -14,21 +12,36 @@ export default function TimerSettings({ initialEndDate, fetcher }) {
   });
 
   const [dirty, setDirty] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
 
-  // коли з action прийшла нова дата -> оновлюємо інпут і скидаємо dirty
+  // зручно мати стабільний прапорець "щойно збережено"
+  const justSaved = useMemo(
+    () => fetcher.state === "idle" && fetcher.data?.ok === true,
+    [fetcher.state, fetcher.data?.ok]
+  );
+
   useEffect(() => {
+    if (!justSaved) return;
+
+    // якщо з бекенда прийшла дата — оновимо інпут
     if (fetcher.data?.endDate) {
       setValue(toInput(fetcher.data.endDate));
-      setDirty(false);
-    } else if (initialEndDate) {
-      setValue(toInput(initialEndDate));
-      setDirty(false);
     }
-  }, [fetcher.data, initialEndDate]);
+
+    setDirty(false);
+    setShowSaved(true);
+
+    const t = setTimeout(() => setShowSaved(false), 2500);
+    return () => clearTimeout(t);
+  }, [justSaved, fetcher.data?.endDate]);
+
+  // при первинному завантаженні з loader
+  useEffect(() => {
+    if (initialEndDate && !dirty) setValue(toInput(initialEndDate));
+  }, [initialEndDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isSubmitting = fetcher.state === "submitting";
 
-  // мінімально допустиме
   const now = new Date();
   const minVal = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
     .toISOString()
@@ -47,7 +60,7 @@ export default function TimerSettings({ initialEndDate, fetcher }) {
               min={minVal}
               onChange={(e) => {
                 setValue(e.target.value);
-                setDirty(true); // ← тепер це точно в цьому ж компоненті
+                setDirty(true);
               }}
               style={{
                 border: "1px solid #ccc",
@@ -64,28 +77,26 @@ export default function TimerSettings({ initialEndDate, fetcher }) {
               Значення змінено — натисніть “Зберегти”.
             </s-paragraph>
           ) : (
-            <s-paragraph subdued>
-              Поточне збережене значення.
-            </s-paragraph>
+            <s-paragraph subdued>Поточне збережене значення.</s-paragraph>
           )}
         </s-stack>
       </s-section>
 
-      <s-section heading="Дії">
-        <s-button
-          variant="primary"
-          submit
-          disabled={!dirty || isSubmitting}
-        >
+      <s-section heading="Дії" style={{ marginTop: 16 }}>
+        <s-button variant="primary" submit disabled={!dirty || isSubmitting}>
           {isSubmitting ? "Зберігаю..." : "Зберегти"}
         </s-button>
-        {fetcher.data?.ok && !dirty && (
-          <s-paragraph subdued style={{ color: "green" }}>
-            Успішно збережено.
-          </s-paragraph>
+
+        {showSaved && (
+          <div style={{ marginTop: 8 }}>
+            <s-paragraph subdued style={{ color: "green" }}>
+              Дату оновлено.
+            </s-paragraph>
+          </div>
         )}
+
         <s-paragraph subdued>
-          Збереження пише в metafield vt.countdown_end.
+          Збереження пише в metafield vtr.countdown_end.
         </s-paragraph>
       </s-section>
     </>

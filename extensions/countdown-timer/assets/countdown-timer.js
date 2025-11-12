@@ -1,9 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll('[id^="vt-countdown-"]').forEach((root) => {
-        const endAttr = root.getAttribute("data-end");
-        if (endAttr) {
-          end = new Date(endAttr);
-        } else {
+      let end;
+
+      const endAttr = root.getAttribute("data-end");
+      if (endAttr) {
+        end = new Date(endAttr);
+      } else {
         end = new Date();
         end.setDate(end.getDate() + 2);
       }
