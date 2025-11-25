@@ -37,22 +37,22 @@ document.addEventListener("DOMContentLoaded", () => {
     function sendAnswer(answer) {
       const email = root.getAttribute("data-email") || "";
     
-      // Тимчасово стукаємо напряму в Render
       const PROXY_URL = "https://varertek-wheel.onrender.com/proxy/countdown-answer";
+    
+      const payload = JSON.stringify({ email, answer });
     
       fetch(PROXY_URL, {
         method: "POST",
+        // text/plain — "simple" контент-тайп, не буде preflight OPTIONS
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "text/plain",
         },
-        body: JSON.stringify({
-          email,
-          answer,
-        }),
+        body: payload,
       }).catch((err) => {
         console.error("Countdown answer error", err);
       });
     }
+    
     
     
 
