@@ -2,6 +2,11 @@
 
 export const changelog = [
     {
+      date: "2025-11-25",
+      title: "Connect to Proxy",
+      items: ["Нарешті підключили проксі", "Отримуємо дані при кліках"],
+    },
+    {
       date: "2025-11-21",
       title: "Connect to DB",
       items: ["Підключили БД NEON", "Динамічна зміна часу"],
