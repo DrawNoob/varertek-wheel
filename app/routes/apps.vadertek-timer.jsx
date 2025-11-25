@@ -1,4 +1,4 @@
-// app/routes/proxy.countdown-answer.jsx
+// app/routes/apps.vadertek-timer.jsx
 import { prisma } from "../db.server";
 import { authenticate } from "../shopify.server";
 

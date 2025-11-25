@@ -37,8 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
     function sendAnswer(answer) {
       const email = root.getAttribute("data-email") || "";
     
-      // ПРЯМА ССИЛКА НА АПКУ НА RENDER
-      const PROXY_URL = "/apps/vadertek-timer";
+      // Тимчасово стукаємо напряму в Render
+      const PROXY_URL = "https://varertek-wheel.onrender.com/proxy/countdown-answer";
     
       fetch(PROXY_URL, {
         method: "POST",
@@ -53,6 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Countdown answer error", err);
       });
     }
+    
     
 
     const yesBtn = root.querySelector('.ask_btn[data-answer="yes"]');
