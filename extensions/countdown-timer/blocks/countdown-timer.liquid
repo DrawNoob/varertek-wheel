@@ -5,109 +5,88 @@
 {% assign end_date = shop.metafields.vtr.countdown_end.value %}
 
 <div
-  style="display: flex; flex-direction: column; gap: 20px;"
   class="vt-countdown-banner vt-countdown-{{ uid }}"
+  style="
+      display: flex; flex-direction: column; gap: 20px;
+    --uid: '{{ uid }}';
+    --bg: {{ block.settings.bg_color }};
+    --text: {{ block.settings.text_color }};
+    --item-bg: {{ block.settings.item_bg }};
+    --item-text: {{ block.settings.item_text_color }};
+    --item-radius: {{ block.settings.item_radius }}px;
+    --align: {{ block.settings.align }};
+  "
   id="vt-countdown-{{ uid }}"
   {% if end_date %}
     data-end="{{ end_date }}"
   {% endif %}
   data-email="{{ customer.email | escape }}"
 >
-  <!-- Timer -->
-  <div>
-    <span class="vt-countdown-label">
-      {{ block.settings.heading }}
-    </span>
-  </div>
-  <div class="vt-countdown-inner vt-countdown-inner-{{ uid }}">
-    <div class="vt-countdown-values">
-      <div class="vt-countdown-item">
-        <span class="vt-countdown-number" data-unit="days">00</span>
-        {% if block.settings.show_labels %}
-          <span class="vt-countdown-title">{{ block.settings.label_days }}</span>
-        {% endif %}
-      </div>
-      <div class="vt-countdown-sep">:</div>
-      <div class="vt-countdown-item">
-        <span class="vt-countdown-number" data-unit="hours">00</span>
-        {% if block.settings.show_labels %}
-          <span class="vt-countdown-title">{{ block.settings.label_hours }}</span>
-        {% endif %}
-      </div>
-      <div class="vt-countdown-sep">:</div>
-      <div class="vt-countdown-item">
-        <span class="vt-countdown-number" data-unit="minutes">00</span>
-        {% if block.settings.show_labels %}
-          <span class="vt-countdown-title">{{ block.settings.label_minutes }}</span>
-        {% endif %}
-      </div>
-      <div class="vt-countdown-sep">:</div>
-      <div class="vt-countdown-item">
-        <span class="vt-countdown-number" data-unit="seconds">00</span>
-        {% if block.settings.show_labels %}
-          <span class="vt-countdown-title">{{ block.settings.label_seconds }}</span>
-        {% endif %}
+  <!-- Блок з таймером -->
+  <div class="vt-countdown-top">
+    <span class="vt-countdown-label"> До нового року залишилось: </span>
+
+    <div class="vt-countdown-inner vt-countdown-inner-{{ uid }}">
+      <div class="vt-countdown-values">
+        <div class="vt-countdown-item">
+          <span class="vt-countdown-number" data-unit="days">00</span>
+          {% if block.settings.show_labels %}
+            <span class="vt-countdown-title">{{ block.settings.label_days }}</span>
+          {% endif %}
+        </div>
+        <div class="vt-countdown-sep">:</div>
+        <div class="vt-countdown-item">
+          <span class="vt-countdown-number" data-unit="hours">00</span>
+          {% if block.settings.show_labels %}
+            <span class="vt-countdown-title">{{ block.settings.label_hours }}</span>
+          {% endif %}
+        </div>
+        <div class="vt-countdown-sep">:</div>
+        <div class="vt-countdown-item">
+          <span class="vt-countdown-number" data-unit="minutes">00</span>
+          {% if block.settings.show_labels %}
+            <span class="vt-countdown-title">{{ block.settings.label_minutes }}</span>
+          {% endif %}
+        </div>
+        <div class="vt-countdown-sep">:</div>
+        <div class="vt-countdown-item">
+          <span class="vt-countdown-number" data-unit="seconds">00</span>
+          {% if block.settings.show_labels %}
+            <span class="vt-countdown-title">{{ block.settings.label_seconds }}</span>
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>
-  <!-- Buttons -->
-  <div>
+
+  <!-- Візуальний роздільник -->
+  <div class="vt-countdown-divider"></div>
+
+  <!-- Блок з питанням і кнопками -->
+  <div class="vt-countdown-question">
     <span class="vt-countdown-label">
       {{ block.settings.heading_sec }}
     </span>
+
+    <div class="vt-countdown-actions">
+      <button class="ask_btn" data-answer="yes">ТАК</button>
+      <button class="ask_btn" data-answer="no">НІ</button>
+    </div>
   </div>
-  <div style="display: flex;gap: 10px;width: 100%;justify-content: center;">
-    <button class="ask_btn" data-answer="yes">ТАК</button>
-    <button class="ask_btn" data-answer="no">НІ</button>
+
+  <!-- Блок з інпутом email -->
+  <div class="vt-countdown-email-wrapper">
+    <label class="vt-countdown-email-label" for="vt-email-{{ uid }}">
+      Вкажіть свій email, щоб ми знали, хто відповів:
+    </label>
+    <input
+      id="vt-email-{{ uid }}"
+      type="email"
+      class="vt-countdown-email-input"
+      placeholder="you@example.com"
+    >
   </div>
 </div>
-
-<style>
-  .vt-countdown-{{ uid }} {
-    background: {{ block.settings.bg_color }};
-    color: {{ block.settings.text_color }};
-    padding: 14px 20px;
-    text-align: {{ block.settings.align }};
-  }
-  .vt-countdown-inner-{{ uid }} {
-    display: inline-flex;
-    gap: 12px;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .vt-countdown-{{ uid }} .vt-countdown-values {
-    display: inline-flex;
-    gap: 6px;
-    align-items: center;
-  }
-  .vt-countdown-{{ uid }} .vt-countdown-item {
-    background: {{ block.settings.item_bg }};
-    border-radius: {{ block.settings.item_radius }}px;
-    padding: 4px 7px 5px;
-    min-width: 46px;
-  }
-  .vt-countdown-{{ uid }} .vt-countdown-number {
-    display: block;
-    font-size: 16px;
-    font-weight: 600;
-    color: {{ block.settings.item_text_color }};
-  }
-  .vt-countdown-{{ uid }} .vt-countdown-title {
-    font-size: 11px;
-    opacity: .7;
-    color: {{ block.settings.item_text_color }};
-  }
-  .vt-countdown-{{ uid }} .vt-countdown-sep {
-    font-weight: 600;
-    color: {{ block.settings.text_color }};
-  }
-  @media (max-width: 540px) {
-    .vt-countdown-inner-{{ uid }} {
-      justify-content: center;
-    }
-  }
-</style>
 
 <script src="{{ 'countdown-timer.js' | asset_url }}" defer></script>
 
@@ -116,12 +95,6 @@
   "name": "Countdown timer",
   "target": "section",
   "settings": [
-    {
-      "type": "text",
-      "id": "heading",
-      "label": "Заголовок 1",
-      "default": "До НОВОГО РОКУ залишилось:"
-    },
     {
       "type": "text",
       "id": "heading_sec",

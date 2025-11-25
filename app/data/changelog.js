@@ -3,6 +3,11 @@
 export const changelog = [
     {
       date: "2025-11-25",
+      title: "Save user inforamtion",
+      items: ["Збираємо дані такі як емейл"],
+    },
+    {
+      date: "2025-11-24",
       title: "Connect to Proxy",
       items: ["Нарешті підключили проксі", "Отримуємо дані при кліках"],
     },

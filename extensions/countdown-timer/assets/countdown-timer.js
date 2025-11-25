@@ -4,13 +4,18 @@ document.addEventListener("DOMContentLoaded", () => {
     let end;
 
     const endAttr = root.getAttribute("data-end");
+
     if (endAttr) {
+      // Якщо раптом передаєш дату з метафілда — рахуємо до неї
       end = new Date(endAttr);
     } else {
-      // якщо нема метафілду - за замовчуванням +2 дні
-      end = new Date();
-      end.setDate(end.getDate() + 2);
+      // Інакше — рахуємо до наступного Нового року (1 січня наступного року, 00:00)
+      const now = new Date();
+      const nextYear = now.getFullYear() + 1;
+      // 1 січня nextYear, 00:00
+      end = new Date(nextYear, 0, 1, 0, 0, 0);
     }
+
 
     function updateCountdown() {
       const now = Date.now();
@@ -33,11 +38,16 @@ document.addEventListener("DOMContentLoaded", () => {
       if (sEl) sEl.textContent = String(seconds).padStart(2, "0");
     }
 
-    // ---- ВІДПРАВКА ВІДПОВІДІ В APP ----
     function sendAnswer(answer) {
-      const email = root.getAttribute("data-email") || "";
+      // 1) шукаємо інпут всередині конкретного блоку
+      const emailInput = root.querySelector(".vt-countdown-email-input");
+      const inputValue = emailInput ? emailInput.value.trim() : "";
     
-      // ТЕПЕР ЙДЕМО ЧЕРЕЗ APP PROXY НА ДОМЕНІ МАГАЗИНУ
+      // 2) fallback — customer.email з Liquid-атрибуту, якщо інпут порожній
+      const attrEmail = root.getAttribute("data-email") || "";
+    
+      const email = inputValue || attrEmail;
+    
       const PROXY_URL = "/apps/vadertek-timer";
     
       const payload = JSON.stringify({ email, answer });
@@ -45,7 +55,6 @@ document.addEventListener("DOMContentLoaded", () => {
       fetch(PROXY_URL, {
         method: "POST",
         headers: {
-          // можеш лишити text/plain як є, але логічніше вже json
           "Content-Type": "application/json",
         },
         body: payload,
@@ -53,6 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Countdown answer error", err);
       });
     }
+    
     
     
     
