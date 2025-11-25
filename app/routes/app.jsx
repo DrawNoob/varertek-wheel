@@ -6,11 +6,14 @@ import { authenticate } from "../shopify.server";
 
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  return { apiKey: process.env.SHOPIFY_API_KEY || "" }; // сервер — тут ок
 };
 
+// 👇 clientLoader БЕЗ process.env
 export const clientLoader = async () => {
-  return { apiKey: process.env.SHOPIFY_API_KEY || "" };
+  return {
+    apiKey: window.__SHOPIFY_API_KEY__ || "", // або просто "" якщо не потрібно
+  };
 };
 
 export default function App() {

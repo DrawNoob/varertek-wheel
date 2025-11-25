@@ -1,0 +1,14 @@
+.ask_btn{
+    width: 120px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    color: black;
+    border: 2px solid white;
+}
+.ask_btn:hover{
+    color: white;
+    background: black;
+}

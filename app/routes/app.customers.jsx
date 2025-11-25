@@ -7,9 +7,8 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 export async function loader({ request }) {
   await authenticate.admin(request);
 
-  // якщо таблиці ще нема / БД порожня — не падаємо
   try {
-    const rows = await prisma.spinAttempt.findMany({
+    const rows = await prisma.countdownAnswer.findMany({
       orderBy: { createdAt: "desc" },
       take: 500,
     });
@@ -23,7 +22,7 @@ export default function CustomerPage() {
   const { rows } = useLoaderData();
 
   return (
-    <s-page heading="Список користувачів які крутанули.">
+    <s-page heading="Відповіді на countdown (Так / Ні)">
       <s-section>
         <s-card-section>
           <strong>Всього записів: {rows.length}</strong>
@@ -35,17 +34,21 @@ export default function CustomerPage() {
               <thead>
                 <tr>
                   <th style={{ textAlign: "left", padding: 8 }}>Email</th>
-                  <th style={{ textAlign: "left", padding: 8 }}>Приз</th>
-                  <th style={{ textAlign: "left", padding: 8 }}>Код</th>
+                  <th style={{ textAlign: "left", padding: 8 }}>Відповідь</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Коли</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} style={{ borderTop: "1px solid #eee" }}>
-                    <td style={{ padding: 8 }}>{r.email}</td>
-                    <td style={{ padding: 8 }}>{r.prizeId || "—"}</td>
-                    <td style={{ padding: 8 }}>{r.code || "—"}</td>
+                    <td style={{ padding: 8 }}>{r.email || "—"}</td>
+                    <td style={{ padding: 8 }}>
+                      {r.answer === "yes"
+                        ? "ТАК"
+                        : r.answer === "no"
+                        ? "НІ"
+                        : r.answer || "—"}
+                    </td>
                     <td style={{ padding: 8 }}>
                       {new Date(r.createdAt).toLocaleString()}
                     </td>
@@ -53,7 +56,7 @@ export default function CustomerPage() {
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={4} style={{ padding: 12, color: "#666" }}>
+                    <td colSpan={3} style={{ padding: 12, color: "#666" }}>
                       Поки порожньо.
                     </td>
                   </tr>
@@ -67,7 +70,7 @@ export default function CustomerPage() {
   );
 }
 
-// Щоб Shopify не губив заголовки (CSP тощо)
+// Shopify boundary
 export function ErrorBoundary() {
   return boundary.error(useRouteError());
 }

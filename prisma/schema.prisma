@@ -7,6 +7,14 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model CountdownAnswer {
+  id        String   @id @default(cuid())
+  shop      String?  // можна прив’язати до магазина з appProxy
+  email     String?
+  answer    String
+  createdAt DateTime @default(now())
+}
+
 
 model Session {
   id            String    @id

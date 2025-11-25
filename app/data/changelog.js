@@ -2,7 +2,7 @@
 
 export const changelog = [
     {
-      date: "2025-12-03",
+      date: "2025-11-21",
       title: "Connect to DB",
       items: ["Підключили БД NEON", "Динамічна зміна часу"],
     },
