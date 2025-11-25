@@ -18,7 +18,7 @@ api_version = "2025-10"
   uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
-scopes = "write_metafields read_metafields"
+scopes = ""
 optional_scopes = [ ]
 use_legacy_install_flow = false
 
