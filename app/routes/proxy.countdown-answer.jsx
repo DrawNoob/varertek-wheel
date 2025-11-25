@@ -1,22 +1,11 @@
-// app/routes/proxy.countdown-answer.jsx
 import { prisma } from "../db.server";
 
-function corsHeaders() {
-  return {
-    "Content-Type": "application/json",
-    // Можеш поставити конкретний домен замість *,
-    // наприклад "https://cherie-dev-store.myshopify.com"
-    "Access-Control-Allow-Origin": "*",
-  };
-}
-
 export async function action({ request }) {
-  // Ми шлемо text/plain, тому читаємо сирий текст
-  const text = await request.text();
   let body = {};
 
+  // Тепер ми шлемо application/json, тож можна читати як JSON
   try {
-    body = text ? JSON.parse(text) : {};
+    body = await request.json();
   } catch {
     body = {};
   }
@@ -27,13 +16,13 @@ export async function action({ request }) {
   if (!answer) {
     return new Response(JSON.stringify({ ok: false }), {
       status: 400,
-      headers: corsHeaders(),
+      headers: { "Content-Type": "application/json" },
     });
   }
 
   await prisma.countdownAnswer.create({
     data: {
-      shop: null, // можна зберігати shop, якщо будеш його передавати з фронта
+      shop: null, // можеш потім додати shop, якщо будеш передавати
       email,
       answer,
     },
@@ -41,6 +30,6 @@ export async function action({ request }) {
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
-    headers: corsHeaders(),
+    headers: { "Content-Type": "application/json" },
   });
 }
