@@ -36,6 +36,7 @@ export default function CustomerPage() {
                   <th style={{ textAlign: "left", padding: 8 }}>Email</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Відповідь</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Коли</th>
+                  <th style={{ textAlign: "left", padding: 8 }}>Девайс</th>
                 </tr>
               </thead>
               <tbody>
@@ -52,6 +53,7 @@ export default function CustomerPage() {
                     <td style={{ padding: 8 }}>
                       {new Date(r.createdAt).toLocaleString()}
                     </td>
+                    <td style={{ padding: 8 }}>{r.deviceType || "—"}</td>
                   </tr>
                 ))}
                 {rows.length === 0 && (

@@ -39,18 +39,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function sendAnswer(answer) {
-      // 1) шукаємо інпут всередині конкретного блоку
+      // Email
       const emailInput = root.querySelector(".vt-countdown-email-input");
       const inputValue = emailInput ? emailInput.value.trim() : "";
-    
-      // 2) fallback — customer.email з Liquid-атрибуту, якщо інпут порожній
       const attrEmail = root.getAttribute("data-email") || "";
-    
       const email = inputValue || attrEmail;
+    
+      // Device type
+      const deviceType = window.innerWidth < 768 ? "Mobile" : "Desktop";
     
       const PROXY_URL = "/apps/vadertek-timer";
     
-      const payload = JSON.stringify({ email, answer });
+      const payload = JSON.stringify({
+        email,
+        answer,
+        device_type: deviceType
+      });
     
       fetch(PROXY_URL, {
         method: "POST",
@@ -62,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Countdown answer error", err);
       });
     }
+    
     
     
     

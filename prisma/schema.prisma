@@ -8,12 +8,14 @@ generator client {
 }
 
 model CountdownAnswer {
-  id        String   @id @default(cuid())
-  shop      String?  // можна прив’язати до магазина з appProxy
-  email     String?
-  answer    String
-  createdAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  shop       String?
+  email      String?
+  answer     String
+  deviceType String?
+  createdAt  DateTime @default(now())
 }
+
 
 
 model Session {

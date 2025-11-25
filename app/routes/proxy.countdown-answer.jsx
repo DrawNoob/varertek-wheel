@@ -12,6 +12,7 @@ export async function action({ request }) {
 
   const email = body.email || null;
   const answer = body.answer || null;
+  const deviceType = body.device_type || null;
 
   if (!answer) {
     return new Response(JSON.stringify({ ok: false }), {
@@ -25,6 +26,7 @@ export async function action({ request }) {
       shop: null, // можеш потім додати shop, якщо будеш передавати
       email,
       answer,
+      deviceType,
     },
   });
 
