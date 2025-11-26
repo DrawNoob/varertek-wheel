@@ -4,7 +4,7 @@ application_url = "https://varertek-wheel.onrender.com"
 embedded = true
 
 [build]
-automatically_update_urls_on_dev = true
+automatically_update_urls_on_dev = false
 
 [webhooks]
 api_version = "2025-10"
