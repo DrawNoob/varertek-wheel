@@ -4,7 +4,7 @@ application_url = "https://varertek-wheel.onrender.com"
 embedded = true
 
 [build]
-automatically_update_urls_on_dev = false
+automatically_update_urls_on_dev = true
 
 [webhooks]
 api_version = "2025-10"
@@ -28,4 +28,5 @@ redirect_urls = [ ]
 [app_proxy]
 prefix = "apps"
 subpath = "vadertek-timer"
-url = "https://varertek-wheel.onrender.com/proxy/countdown-answer"
+url = "https://varertek-wheel.onrender.com/proxy/vadertek-timer"
+

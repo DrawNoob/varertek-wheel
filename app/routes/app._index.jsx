@@ -34,7 +34,6 @@ export default function Index() {
 
         <s-stack direction="inline" gap="base">
           <s-link href="/app/settings">Відкрити Settings</s-link>
-          <s-link href="/app/changes">Дивитись зміни</s-link>
           <s-button
             href="https://shopify.dev/docs/apps"
             target="_blank"

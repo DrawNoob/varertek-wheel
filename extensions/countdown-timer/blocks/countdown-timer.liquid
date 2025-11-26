@@ -2,7 +2,6 @@
 <link rel="stylesheet" href="{{ 'countdown-timer.css' | asset_url }}">
 
 {% assign uid = block.id %}
-{% assign end_date = shop.metafields.vtr.countdown_end.value %}
 
 <div
   class="vt-countdown-banner vt-countdown-{{ uid }}"
@@ -17,9 +16,6 @@
     --align: {{ block.settings.align }};
   "
   id="vt-countdown-{{ uid }}"
-  {% if end_date %}
-    data-end="{{ end_date }}"
-  {% endif %}
   data-email="{{ customer.email | escape }}"
 >
   <!-- Повна панель таймера -->

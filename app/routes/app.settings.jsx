@@ -7,34 +7,36 @@ import {
 } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
+import { prisma } from "../db.server";
 
+// ----------------------
+//        LOADER
+// ----------------------
 export async function loader({ request }) {
-  const { admin } = await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
+  const shop = session.shop;
 
   let countdownEnd = null;
 
   try {
-    const resp = await admin.graphql(`
-      query GetCountdownEnd {
-        shop {
-          metafield(namespace: "vtr", key: "countdown_end") {
-            value
-          }
-        }
-      }
-    `);
+    const record = await prisma.countdownSetting.findUnique({
+      where: { shop },
+    });
 
-    const json = await resp.json();
-    countdownEnd = json.data?.shop?.metafield?.value ?? null;
+    countdownEnd = record?.endDate ? record.endDate.toISOString() : null;
   } catch (e) {
-    console.error("Failed to load countdown_end metafield", e);
+    console.error("Failed to load countdown setting from DB", e);
   }
 
   return { countdownEnd };
 }
 
+// ----------------------
+//        ACTION
+// ----------------------
 export async function action({ request }) {
-  const { admin } = await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
+  const shop = session.shop;
 
   const formData = await request.formData();
   const raw = formData.get("countdownEnd");
@@ -47,76 +49,27 @@ export async function action({ request }) {
   }
 
   try {
-    // 1) Беремо shop id
-    const shopResp = await admin.graphql(`
-      query GetShopId {
-        shop {
-          id
-        }
-      }
-    `);
-    const shopJson = await shopResp.json();
-    const shopId = shopJson.data?.shop?.id;
-
-    if (!shopId) {
-      console.error("No shop id");
-      return { ok: false, message: "Не вдалося отримати ID магазину." };
-    }
-
-    // 2) Переводимо з datetime-local у ISO
     const isoValue = new Date(raw).toISOString();
 
-    // 3) Ставимо metafield
-    const setResp = await admin.graphql(
-      `
-      mutation SetCountdownEnd($ownerId: ID!, $value: String!) {
-        metafieldsSet(
-          metafields: [
-            {
-              namespace: "vtr"
-              key: "countdown_end"
-              type: "date_time"
-              ownerId: $ownerId
-              value: $value
-            }
-          ]
-        ) {
-          userErrors {
-            field
-            message
-          }
-        }
-      }
-    `,
-      {
-        variables: {
-          ownerId: shopId,
-          value: isoValue,
-        },
-      },
-    );
-
-    const setJson = await setResp.json();
-    const errors = setJson.data?.metafieldsSet?.userErrors ?? [];
-
-    if (errors.length) {
-      console.error("metafieldsSet errors", errors);
-      return {
-        ok: false,
-        message: errors[0]?.message || "Помилка при збереженні metafield.",
-      };
-    }
+    await prisma.countdownSetting.upsert({
+      where: { shop },
+      update: { endDate: isoValue },
+      create: { shop, endDate: isoValue },
+    });
 
     return { ok: true };
   } catch (e) {
-    console.error("Failed to set countdown_end metafield", e);
+    console.error("Failed to save countdown setting to DB", e);
     return {
       ok: false,
-      message: "Сталася помилка при зверненні до Shopify API.",
+      message: "Сталася помилка при записі в базу даних.",
     };
   }
 }
 
+// ----------------------
+//       COMPONENT
+// ----------------------
 export default function SettingsPage() {
   const { countdownEnd } = useLoaderData();
   const actionData = useActionData();
@@ -124,8 +77,16 @@ export default function SettingsPage() {
   let defaultValue = "";
   if (countdownEnd) {
     try {
-      // datetime-local → YYYY-MM-DDTHH:MM
-      defaultValue = new Date(countdownEnd).toISOString().slice(0, 16);
+      const d = new Date(countdownEnd);
+      const pad = (n) => String(n).padStart(2, "0");
+
+      const year = d.getFullYear();
+      const month = pad(d.getMonth() + 1);
+      const day = pad(d.getDate());
+      const hours = pad(d.getHours());
+      const minutes = pad(d.getMinutes());
+
+      defaultValue = `${year}-${month}-${day}T${hours}:${minutes}`;
     } catch {
       defaultValue = "";
     }
@@ -144,7 +105,7 @@ export default function SettingsPage() {
                 </s-text>
                 <s-text as="p" variant="bodySm">
                   Обери дату та час, до яких таймер буде рахувати. Якщо не
-                  вказати — за замовчуванням рахує до наступного Нового року.
+                  вказати — на вітрині буде стандартний відлік до нового року.
                 </s-text>
               </s-vertical-stack>
 
@@ -171,29 +132,51 @@ export default function SettingsPage() {
               {/* Поточне значення */}
               {countdownEnd && (
                 <s-text as="p" variant="bodySm" tone="subdued">
-                  Поточне значення:{" "}
-                  {new Date(countdownEnd).toLocaleString()}
+                  Поточне значення: {new Date(countdownEnd).toLocaleString()}
                 </s-text>
               )}
 
-              {/* Повідомлення про результат */}
-              {actionData?.ok && (
-                <s-text as="p" variant="bodySm" tone="success">
-                  Збережено ✅
-                </s-text>
-              )}
-              {actionData && actionData.ok === false && (
-                <s-text as="p" variant="bodySm" tone="critical">
-                  {actionData.message || "Не вдалося зберегти налаштування."}
-                </s-text>
-              )}
-
-              {/* Кнопка */}
-              <div style={{ marginTop: 8 }}>
-                <s-button tone="success" submit>
+              {/* Кнопка + повідомлення справа */}
+              <div
+                style={{
+                  marginTop: "16px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "16px",
+                }}
+              >
+                <button
+                  type="submit"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "6px 14px",
+                    borderRadius: "8px",
+                    border: "none",
+                    cursor: "pointer",
+                    backgroundColor: "#008060",
+                    color: "#ffffff",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                  }}
+                >
                   Зберегти
-                </s-button>
+                </button>
+
+                {/* Повідомлення справа */}
+                {actionData?.ok && (
+                  <s-text as="span" variant="bodySm" tone="success">
+                    Збережено ✅
+                  </s-text>
+                )}
+                {actionData?.ok === false && (
+                  <s-text as="span" variant="bodySm" tone="critical">
+                    {actionData.message}
+                  </s-text>
+                )}
               </div>
+
             </s-vertical-stack>
           </Form>
         </s-card-section>
@@ -202,6 +185,7 @@ export default function SettingsPage() {
   );
 }
 
+// Shopify boundaries
 export function ErrorBoundary() {
   return boundary.error(useRouteError());
 }

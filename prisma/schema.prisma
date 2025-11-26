@@ -16,6 +16,14 @@ model CountdownAnswer {
   createdAt  DateTime @default(now())
 }
 
+model CountdownSetting {
+  id        Int      @id @default(autoincrement())
+  shop      String   @unique
+  endDate   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
 
 model Session {
