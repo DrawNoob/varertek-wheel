@@ -16,7 +16,6 @@
     --align: {{ block.settings.align }};
   "
   id="vt-countdown-{{ uid }}"
-  data-email="{{ customer.email | escape }}"
 >
   <!-- Повна панель таймера -->
   <div class="vt-countdown-panel">
@@ -65,34 +64,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Візуальний роздільник -->
-    <div class="vt-countdown-divider"></div>
-
-    <!-- Блок з питанням і кнопками -->
-    <div class="vt-countdown-question">
-      <span class="vt-countdown-label">
-        {{ block.settings.heading_sec }}
-      </span>
-
-      <div class="vt-countdown-actions">
-        <button class="ask_btn" data-answer="yes">ТАК</button>
-        <button class="ask_btn" data-answer="no">НІ</button>
-      </div>
-    </div>
-
-    <!-- Блок з інпутом email -->
-    <div class="vt-countdown-email-wrapper">
-      <label class="vt-countdown-email-label" for="vt-email-{{ uid }}">
-        Вкажіть свій email, щоб ми знали, хто відповів:
-      </label>
-      <input
-        id="vt-email-{{ uid }}"
-        type="email"
-        class="vt-countdown-email-input"
-        placeholder="you@example.com"
-      >
-    </div>
   </div>
 
   <!-- МІНІ-ВАРІАНТ — кружок з таймером -->
@@ -115,12 +86,6 @@
   "name": "Countdown timer",
   "target": "section",
   "settings": [
-    {
-      "type": "text",
-      "id": "heading_sec",
-      "label": "Заголовок 2",
-      "default": "Чекаєш на новий рік?"
-    },
     {
       "type": "color",
       "id": "bg_color",

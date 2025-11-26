@@ -1,0 +1,115 @@
+{% # theme-check-disable ValidSchema %}
+<link rel="stylesheet" href="{{ 'ask-question.css' | asset_url }}">
+
+{% assign uid = block.id %}
+
+<section
+  class="vt-survey-banner vt-survey-{{ uid }}"
+  style="
+    --bg: {{ block.settings.bg_color }};
+    --text: {{ block.settings.text_color }};
+  "
+  data-vt-survey
+  data-email="{{ customer.email | escape }}"
+>
+  <div class="vt-survey-inner">
+    {% if block.settings.heading != blank %}
+      <h2 class="vt-survey-heading">
+        {{ block.settings.heading }}
+      </h2>
+    {% endif %}
+
+    {% if block.settings.subheading != blank %}
+      <p class="vt-survey-subheading">
+        {{ block.settings.subheading }}
+      </p>
+    {% endif %}
+
+    <div class="vt-survey-question">
+      <span class="vt-survey-label">
+        {{ block.settings.question }}
+      </span>
+
+      <div class="vt-survey-actions">
+        <button class="vt-survey-btn" data-answer="yes">ТАК</button>
+        <button class="vt-survey-btn vt-survey-btn--no" data-answer="no">НІ</button>
+      </div>
+    </div>
+
+    <div class="vt-survey-email-wrapper">
+      <label class="vt-survey-email-label" for="vt-survey-email-{{ uid }}">
+        {{ block.settings.email_label }}
+      </label>
+      <input
+        id="vt-survey-email-{{ uid }}"
+        type="email"
+        class="vt-survey-email-input"
+        placeholder="{{ block.settings.email_placeholder }}"
+      >
+    </div>
+
+    {% if block.settings.footer_text != blank %}
+      <p class="vt-survey-footer">
+        {{ block.settings.footer_text }}
+      </p>
+    {% endif %}
+  </div>
+</section>
+
+<script src="{{ 'ask-question.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Question - Emails GET",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Заголовок",
+      "default": "Чекаєш на Новий рік?"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Підзаголовок",
+      "default": "Відповідай нижче і залиш свій email."
+    },
+    {
+      "type": "text",
+      "id": "question",
+      "label": "Питання",
+      "default": "Чекаєш на Новий рік?"
+    },
+    {
+      "type": "text",
+      "id": "email_label",
+      "label": "Підпис для поля email",
+      "default": "Вкажіть свій email, щоб ми знали, хто відповів:"
+    },
+    {
+      "type": "text",
+      "id": "email_placeholder",
+      "label": "Placeholder email",
+      "default": "you@example.com"
+    },
+    {
+      "type": "text",
+      "id": "footer_text",
+      "label": "Текст внизу (необов'язково)"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Фон секції",
+      "default": "#000000"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Колір тексту",
+      "default": "#FFFFFF"
+    }
+  ]
+}
+{% endschema %}
