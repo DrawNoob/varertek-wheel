@@ -36,7 +36,7 @@ export async function loader({ request }) {
   });
 }
 
-// POST /proxy/vadertek-timer  → відповіді ТАК/НІ
+// POST /proxy/vadertek-timer  → відповіді ТАК/НІ + колесо фортуни
 export async function action({ request }) {
   const shop = getShopFromRequest(request);
 
@@ -50,7 +50,46 @@ export async function action({ request }) {
   const email = body.email || null;
   const answer = body.answer || null;
   const deviceType = body.device_type || null;
+  const checkCustomer = body.check_customer === true;
 
+  // ─────────────────────────────────────────────
+  // 1) ОКРЕМА ГІЛКА: перевірка, чи емейл вже був
+  //    Використовується колесом фортуни перед спіном
+  // ─────────────────────────────────────────────
+  if (checkCustomer) {
+    if (!shop || !email) {
+      return new Response(JSON.stringify({ exists: false }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    try {
+      const count = await prisma.countdownAnswer.count({
+        where: {
+          shop,
+          email,
+        },
+      });
+
+      return new Response(JSON.stringify({ exists: count > 0 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      console.error("APP PROXY check_customer DB error", e);
+      // Якщо щось пішло не так — вважаємо, що емейл ще не використовували,
+      // щоб не ламати UX.
+      return new Response(JSON.stringify({ exists: false }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // 2) Звичайний режим: зберігаємо відповідь (опитування / колесо)
+  // ─────────────────────────────────────────────
   if (!answer || !shop) {
     return new Response(JSON.stringify({ ok: false }), {
       status: 400,

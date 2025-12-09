@@ -7,6 +7,9 @@
   class="vt-wheel-overlay vt-wheel-overlay--hidden vt-wheel-overlay-{{ uid }}"
   data-vt-wheel-overlay
   data-uid="{{ uid }}"
+  data-email="{{ customer.email | escape }}"
+  data-error-message="{{ block.settings.error_message | escape }}"
+  data-success-message="{{ block.settings.success_message | escape }}"
   style="
     --overlay-bg: {{ block.settings.overlay_bg }};
     --modal-bg: {{ block.settings.modal_bg }};
@@ -46,18 +49,40 @@
         </p>
       {% endif %}
 
-      <div class="vt-wheel-wrapper">
-        <div class="vt-wheel-pointer"></div>
-        <div class="vt-wheel-disc">
-          <div class="vt-wheel-center">?</div>
+      <div class="vt-wheel-layout">
+        <!-- ЛІВО: колесо -->
+        <div class="vt-wheel-wrapper">
+          <div class="vt-wheel-pointer"></div>
+          <div class="vt-wheel-disc">
+            <div class="vt-wheel-center">?</div>
+          </div>
+        </div>
+
+        <!-- ПРАВО: email + кнопка -->
+        <div class="vt-wheel-side">
+          <div class="vt-wheel-email-wrapper">
+            <label for="vt-wheel-email-{{ uid }}" class="vt-wheel-email-label">
+              {{ block.settings.email_label }}
+            </label>
+            <input
+              id="vt-wheel-email-{{ uid }}"
+              type="email"
+              class="vt-wheel-email-input"
+              placeholder="{{ block.settings.email_placeholder }}"
+            >
+          </div>
+
+          <p class="vt-wheel-error" data-vt-wheel-error></p>
+
+          {% if block.settings.button_label != blank %}
+            <button type="button" class="vt-wheel-spin-btn">
+              {{ block.settings.button_label }}
+            </button>
+          {% endif %}
         </div>
       </div>
 
-      {% if block.settings.button_label != blank %}
-        <button type="button" class="vt-wheel-spin-btn">
-          {{ block.settings.button_label }}
-        </button>
-      {% endif %}
+      <p class="vt-wheel-success" data-vt-wheel-success></p>
     </div>
   </div>
 </div>
@@ -101,6 +126,35 @@
       "id": "button_label",
       "label": "Текст кнопки",
       "default": "Крутити колесо"
+    },
+
+    {
+      "type": "header",
+      "content": "Емейл"
+    },
+    {
+      "type": "text",
+      "id": "email_label",
+      "label": "Підпис для поля email",
+      "default": "Вкажіть свій email, щоб взяти участь:"
+    },
+    {
+      "type": "text",
+      "id": "email_placeholder",
+      "label": "Placeholder email",
+      "default": "you@example.com"
+    },
+    {
+      "type": "text",
+      "id": "error_message",
+      "label": "Текст помилки при відсутності / повторі email",
+      "default": "Введіть коректний email, щоб крутити колесо."
+    },
+    {
+      "type": "text",
+      "id": "success_message",
+      "label": "Повідомлення після успішного прокручування",
+      "default": "Ви успішно прокрутили колесо!"
     },
 
     {
