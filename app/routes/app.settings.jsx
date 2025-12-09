@@ -94,10 +94,16 @@ export default function SettingsPage() {
 
   return (
     <s-page heading="Налаштування таймера">
+      {/* БЛОК 1 — ТАЙМЕР */}
       <s-section>
         <s-card-section>
           <Form method="post">
             <s-vertical-stack gap="400">
+              {/* Тайтл секції */}
+              <h1>
+                Таймер
+              </h1>
+
               {/* Заголовок + опис */}
               <s-vertical-stack gap="100">
                 <s-text as="h2" variant="headingMd">
@@ -176,9 +182,22 @@ export default function SettingsPage() {
                   </s-text>
                 )}
               </div>
-
             </s-vertical-stack>
           </Form>
+        </s-card-section>
+      </s-section>
+
+      {/* БЛОК 2 — КОЛЕСО ФОРТУНИ */}
+      <s-section>
+        <s-card-section>
+          <s-vertical-stack gap="200">
+            <h1>
+              Колесо фортуни
+            </h1>
+            <s-text as="p" variant="bodySm" tone="subdued">
+              Налаштування колеса фортуни з’являться тут найближчим часом.
+            </s-text>
+          </s-vertical-stack>
         </s-card-section>
       </s-section>
     </s-page>

@@ -2,6 +2,14 @@
 
 export const changelog = [
   {
+    date: "2025-12-05",
+    title: "Wheel Update Prepate",
+    items: [
+      "Підготовка до додавання колеса",
+      "Аналіз як працюють діскаунти"
+    ],
+  },
+  {
     date: "2025-11-25",
     title: "Advanced User Data Collection",
     items: [

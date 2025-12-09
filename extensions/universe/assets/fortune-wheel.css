@@ -1,0 +1,202 @@
+.vt-wheel-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--overlay-bg, rgba(0, 0, 0, 0.65));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.25s ease-out;
+  }
+  
+  .vt-wheel-overlay--hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  .vt-wheel-modal {
+    background: var(--modal-bg, #111827);
+    color: var(--text-color, #ffffff);
+    border-radius: 18px;
+    padding: 24px 20px 28px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    position: relative;
+  }
+  
+  .vt-wheel-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  
+    background: var(--close-bg, #374151);
+    color: var(--close-text, #ffffff);
+    font-size: 18px;
+    line-height: 1;
+  }
+  
+  .vt-wheel-close:hover {
+    filter: brightness(1.1);
+  }
+  
+  .vt-wheel-content {
+    text-align: center;
+  }
+  
+  .vt-wheel-heading {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  
+  .vt-wheel-subheading {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 16px;
+  }
+  
+  .vt-wheel-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px auto 18px;
+  }
+  
+  .vt-wheel-disc {
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    border: 6px solid var(--wheel-border, #fbbf24);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  
+    background:
+      conic-gradient(
+        var(--seg1, #f87171) 0deg 60deg,
+        var(--seg2, #fbbf24) 60deg 120deg,
+        var(--seg3, #34d399) 120deg 180deg,
+        var(--seg4, #60a5fa) 180deg 240deg,
+        var(--seg5, #a78bfa) 240deg 300deg,
+        var(--seg6, #f472b6) 300deg 360deg
+      );
+  }
+  
+  .vt-wheel-center {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(17, 24, 39, 0.95);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 24px;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.45);
+  }
+  
+  .vt-wheel-pointer {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-bottom: 20px solid #fbbf24;
+  }
+  
+  /* Кнопка крутити */
+  .vt-wheel-spin-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 22px;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    background: var(--btn-bg, #10b981);
+    color: var(--btn-text, #ffffff);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  
+  .vt-wheel-spin-btn:hover {
+    filter: brightness(1.05);
+  }
+  
+  /* Легка анімація при "круті" */
+  .vt-wheel-disc--spinning {
+    animation: vt-wheel-spin 1.2s ease-out forwards;
+  }
+  
+  @keyframes vt-wheel-spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(720deg);
+    }
+  }
+  
+  /* Стікний тригер зліва */
+  .vt-wheel-trigger {
+    position: fixed;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    border: none;
+    cursor: pointer;
+    z-index: 9998;
+  
+    background: var(--btn-bg, #10b981);
+    color: var(--btn-text, #ffffff);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+  }
+  
+  .vt-wheel-trigger--hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-50%) translateX(-8px);
+  }
+  
+  /* Мобіла */
+  @media (max-width: 480px) {
+    .vt-wheel-modal {
+      margin: 0 12px;
+      padding: 18px 16px 22px;
+    }
+  
+    .vt-wheel-disc {
+      width: 190px;
+      height: 190px;
+    }
+  }
+  

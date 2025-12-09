@@ -1,0 +1,201 @@
+{% # theme-check-disable ValidSchema %}
+<link rel="stylesheet" href="{{ 'fortune-wheel.css' | asset_url }}">
+
+{% assign uid = block.id %}
+
+<div
+  class="vt-wheel-overlay vt-wheel-overlay--hidden vt-wheel-overlay-{{ uid }}"
+  data-vt-wheel-overlay
+  data-uid="{{ uid }}"
+  style="
+    --overlay-bg: {{ block.settings.overlay_bg }};
+    --modal-bg: {{ block.settings.modal_bg }};
+    --text-color: {{ block.settings.text_color }};
+    --btn-bg: {{ block.settings.button_bg }};
+    --btn-text: {{ block.settings.button_text }};
+    --close-bg: {{ block.settings.close_bg }};
+    --close-text: {{ block.settings.close_text }};
+    --wheel-border: {{ block.settings.wheel_border }};
+    --seg1: {{ block.settings.segment_color_1 }};
+    --seg2: {{ block.settings.segment_color_2 }};
+    --seg3: {{ block.settings.segment_color_3 }};
+    --seg4: {{ block.settings.segment_color_4 }};
+    --seg5: {{ block.settings.segment_color_5 }};
+    --seg6: {{ block.settings.segment_color_6 }};
+  "
+>
+  <div class="vt-wheel-modal">
+    <button
+      type="button"
+      class="vt-wheel-close"
+      aria-label="Закрити"
+    >
+      ×
+    </button>
+
+    <div class="vt-wheel-content">
+      {% if block.settings.heading != blank %}
+        <h2 class="vt-wheel-heading">
+          {{ block.settings.heading }}
+        </h2>
+      {% endif %}
+
+      {% if block.settings.subheading != blank %}
+        <p class="vt-wheel-subheading">
+          {{ block.settings.subheading }}
+        </p>
+      {% endif %}
+
+      <div class="vt-wheel-wrapper">
+        <div class="vt-wheel-pointer"></div>
+        <div class="vt-wheel-disc">
+          <div class="vt-wheel-center">?</div>
+        </div>
+      </div>
+
+      {% if block.settings.button_label != blank %}
+        <button type="button" class="vt-wheel-spin-btn">
+          {{ block.settings.button_label }}
+        </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{%- comment -%}
+  Стікний тригер зліва по центру, показується, коли попап закритий
+{%- endcomment -%}
+<button
+  type="button"
+  class="vt-wheel-trigger vt-wheel-trigger--hidden vt-wheel-trigger-{{ uid }}"
+  aria-label="Відкрити колесо фортуни"
+>
+  🎡
+</button>
+
+<script src="{{ 'fortune-wheel.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Wheel of Fortune",
+  "target": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Текст"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Заголовок",
+      "default": "Крути колесо фортуни!"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Підзаголовок",
+      "default": "Отримай свій шанс на подарунок або знижку."
+    },
+    {
+      "type": "text",
+      "id": "button_label",
+      "label": "Текст кнопки",
+      "default": "Крутити колесо"
+    },
+
+    {
+      "type": "header",
+      "content": "Кольори попапа"
+    },
+    {
+      "type": "color",
+      "id": "overlay_bg",
+      "label": "Фон затемнення",
+      "default": "rgba(0,0,0,0.65)"
+    },
+    {
+      "type": "color",
+      "id": "modal_bg",
+      "label": "Фон вікна",
+      "default": "#111827"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Колір тексту",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "button_bg",
+      "label": "Фон кнопки “Крутити”",
+      "default": "#10B981"
+    },
+    {
+      "type": "color",
+      "id": "button_text",
+      "label": "Колір тексту кнопки",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "close_bg",
+      "label": "Фон кнопки закрити",
+      "default": "#374151"
+    },
+    {
+      "type": "color",
+      "id": "close_text",
+      "label": "Колір іконки закрити",
+      "default": "#FFFFFF"
+    },
+    {
+      "type": "color",
+      "id": "wheel_border",
+      "label": "Колір рамки колеса",
+      "default": "#FBBF24"
+    },
+
+    {
+      "type": "header",
+      "content": "Кольори секторів колеса"
+    },
+    {
+      "type": "color",
+      "id": "segment_color_1",
+      "label": "Сектор 1",
+      "default": "#F87171"
+    },
+    {
+      "type": "color",
+      "id": "segment_color_2",
+      "label": "Сектор 2",
+      "default": "#FBBF24"
+    },
+    {
+      "type": "color",
+      "id": "segment_color_3",
+      "label": "Сектор 3",
+      "default": "#34D399"
+    },
+    {
+      "type": "color",
+      "id": "segment_color_4",
+      "label": "Сектор 4",
+      "default": "#60A5FA"
+    },
+    {
+      "type": "color",
+      "id": "segment_color_5",
+      "label": "Сектор 5",
+      "default": "#A78BFA"
+    },
+    {
+      "type": "color",
+      "id": "segment_color_6",
+      "label": "Сектор 6",
+      "default": "#F472B6"
+    }
+  ]
+}
+{% endschema %}
