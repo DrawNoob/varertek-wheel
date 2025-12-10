@@ -241,14 +241,25 @@ export async function action({ request }) {
       }
     } catch (err) {
       console.error("Shopify discount create ERROR:", err);
+
+      // Спробуємо витягнути хоч якийсь текст
+      let msg = "Невідома помилка при створенні знижки.";
+      if (err && typeof err === "object") {
+        if (err.message) msg = err.message;
+        else msg = String(err);
+      } else if (err) {
+        msg = String(err);
+      }
+
       return json(
         {
           ok: false,
-          message: "Фатальна помилка при створенні знижки. Перевір логи сервера.",
+          message: `Помилка створення знижки (backend): ${msg}`,
         },
         200
       );
     }
+
 
     // -------------------------------------------------------------------
     // 3️⃣ ЗАПИСАТИ В БД (щоб знати що email вже грав)
