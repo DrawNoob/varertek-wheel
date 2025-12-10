@@ -53,13 +53,23 @@
         <!-- ЛІВО: колесо -->
         <div class="vt-wheel-wrapper">
           <div class="vt-wheel-pointer"></div>
+
           <div class="vt-wheel-disc">
+            {%- comment -%} Порожні елементи, текст підставить JS з налаштувань апки {%- endcomment -%}
+            <span class="vt-wheel-label vt-wheel-label-1" data-segment-index="0"></span>
+            <span class="vt-wheel-label vt-wheel-label-2" data-segment-index="1"></span>
+            <span class="vt-wheel-label vt-wheel-label-3" data-segment-index="2"></span>
+            <span class="vt-wheel-label vt-wheel-label-4" data-segment-index="3"></span>
+            <span class="vt-wheel-label vt-wheel-label-5" data-segment-index="4"></span>
+            <span class="vt-wheel-label vt-wheel-label-6" data-segment-index="5"></span>
+
             <div class="vt-wheel-center">?</div>
           </div>
         </div>
 
         <!-- ПРАВО: email + кнопка -->
         <div class="vt-wheel-side">
+          {%- comment -%} Блок з емейлом (видимий ДО спіну) {%- endcomment -%}
           <div class="vt-wheel-email-wrapper">
             <label for="vt-wheel-email-{{ uid }}" class="vt-wheel-email-label">
               {{ block.settings.email_label }}
@@ -70,6 +80,20 @@
               class="vt-wheel-email-input"
               placeholder="{{ block.settings.email_placeholder }}"
             >
+          </div>
+
+          {%- comment -%} Блок з промокодом (прихований ДО спіну) {%- endcomment -%}
+          <div class="vt-wheel-code-wrapper vt-wheel-code-wrapper--hidden">
+            <label class="vt-wheel-code-label">Ваш промокод:</label>
+            <div class="vt-wheel-code-row">
+              <input
+                type="text"
+                class="vt-wheel-code-input"
+                readonly
+              >
+              <button type="button" class="vt-wheel-copy-btn">Скопіювати</button>
+            </div>
+            <p class="vt-wheel-code-copied"></p>
           </div>
 
           <p class="vt-wheel-error" data-vt-wheel-error></p>

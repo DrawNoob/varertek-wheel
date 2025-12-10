@@ -178,14 +178,15 @@
   
   .vt-wheel-pointer {
     position: absolute;
-    top: -18px;
+    top: -22px;
     left: 50%;
     transform: translateX(-50%);
     width: 0;
     height: 0;
     border-left: 12px solid transparent;
     border-right: 12px solid transparent;
-    border-bottom: 20px solid #fbbf24;
+    border-bottom: none;
+    border-top: 20px solid #fbbf24;
   }
   
   /* Кнопка крутити */
@@ -273,5 +274,76 @@
       width: 190px;
       height: 190px;
     }
+  }
+  /* Текстові лейбли на секторах */
+  .vt-wheel-label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform-origin: center center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827; /* якщо фон темний — можеш зробити #FFFFFF */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    white-space: nowrap;
+  }
+
+  /* центри секторів (кожен сектор = 60°, беремо середину) */
+  .vt-wheel-label-1 {
+    transform: translate(-50%, -50%) rotate(30deg) translate(0, -72px) rotate(-30deg);
+  }
+  .vt-wheel-label-2 {
+    transform: translate(-50%, -50%) rotate(90deg) translate(0, -72px) rotate(-90deg);
+  }
+  .vt-wheel-label-3 {
+    transform: translate(-50%, -50%) rotate(150deg) translate(0, -72px) rotate(-150deg);
+  }
+  .vt-wheel-label-4 {
+    transform: translate(-50%, -50%) rotate(210deg) translate(0, -72px) rotate(-210deg);
+  }
+  .vt-wheel-label-5 {
+    transform: translate(-50%, -50%) rotate(270deg) translate(0, -72px) rotate(-270deg);
+  }
+  .vt-wheel-label-6 {
+    transform: translate(-50%, -50%) rotate(330deg) translate(0, -72px) rotate(-330deg);
+  }
+
+  /* можна зробити трохи менший текст на мобілі */
+  @media (max-width: 640px) {
+    .vt-wheel-label {
+      font-size: 12px;
+      transform-origin: center center;
+    }
+  }
+  .vt-wheel-code-wrapper--hidden {
+    display: none;
+  }
+  
+  .vt-wheel-code-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  
+  .vt-wheel-code-input {
+    flex: 1;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #D1D5DB;
+    font-size: 13px;
+    background: #111827;
+    color: #fff;
+  }
+  
+  .vt-wheel-copy-btn {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .vt-wheel-code-copied {
+    font-size: 12px;
+    margin-top: 4px;
   }
   

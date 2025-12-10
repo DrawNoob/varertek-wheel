@@ -17,20 +17,34 @@ export async function loader({ request }) {
   const shop = session.shop;
 
   let countdownEnd = null;
+  let wheelSetting = null;
 
   try {
-    const record = await prisma.countdownSetting.findUnique({
-      where: { shop },
-    });
+    const [countdownRecord, wheel] = await Promise.all([
+      prisma.countdownSetting.findUnique({
+        where: { shop },
+      }),
+      prisma.wheelSetting.findUnique({
+        where: { shop },
+      }),
+    ]);
 
-    countdownEnd = record?.endDate ? record.endDate.toISOString() : null;
+    countdownEnd = countdownRecord?.endDate
+      ? countdownRecord.endDate.toISOString()
+      : null;
+
+    wheelSetting = wheel || null;
   } catch (e) {
-    console.error("Failed to load countdown setting from DB", e);
+    console.error("Failed to load settings from DB", e);
   }
 
-  return { countdownEnd };
+  return { countdownEnd, wheelSetting };
 }
 
+
+// ----------------------
+//        ACTION
+// ----------------------
 // ----------------------
 //        ACTION
 // ----------------------
@@ -39,6 +53,48 @@ export async function action({ request }) {
   const shop = session.shop;
 
   const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  // ─────────────────────────────
+  // 1) ЗБЕРЕГТИ НАЛАШТУВАННЯ КОЛЕСА
+  // ─────────────────────────────
+  if (intent === "saveWheel") {
+    const buildSegment = (i) => ({
+      label: formData.get(`s${i}_label`) || "",
+      chance: Number(formData.get(`s${i}_chance`) || 0),
+      discountType: formData.get(`s${i}_dtype`) || "PERCENT",
+      discountValue: Number(formData.get(`s${i}_dvalue`) || 0),
+    });
+
+    const payload = {
+      segment1: buildSegment(1),
+      segment2: buildSegment(2),
+      segment3: buildSegment(3),
+      segment4: buildSegment(4),
+      segment5: buildSegment(5),
+      segment6: buildSegment(6),
+    };
+
+    try {
+      await prisma.wheelSetting.upsert({
+        where: { shop },
+        update: payload,
+        create: { shop, ...payload },
+      });
+
+      return { okWheel: true };
+    } catch (e) {
+      console.error("Failed to save wheel settings to DB", e);
+      return {
+        okWheel: false,
+        messageWheel: "Сталася помилка при збереженні налаштувань колеса.",
+      };
+    }
+  }
+
+  // ─────────────────────────────
+  // 2) ЗБЕРЕГТИ ДАТУ ТАЙМЕРА (СТАРА ЛОГІКА)
+  // ─────────────────────────────
   const raw = formData.get("countdownEnd");
 
   if (!raw) {
@@ -67,12 +123,14 @@ export async function action({ request }) {
   }
 }
 
+
 // ----------------------
 //       COMPONENT
 // ----------------------
 export default function SettingsPage() {
-  const { countdownEnd } = useLoaderData();
+  const { countdownEnd, wheelSetting } = useLoaderData();
   const actionData = useActionData();
+
 
   let defaultValue = "";
   if (countdownEnd) {
@@ -190,16 +248,193 @@ export default function SettingsPage() {
       {/* БЛОК 2 — КОЛЕСО ФОРТУНИ */}
       <s-section>
         <s-card-section>
-          <s-vertical-stack gap="200">
-            <h1>
+          <div style={{ marginBottom: "16px" }}>
+            <h1 style={{ fontSize: "22px", fontWeight: 600, marginBottom: "4px" }}>
               Колесо фортуни
             </h1>
-            <s-text as="p" variant="bodySm" tone="subdued">
-              Налаштування колеса фортуни з’являться тут найближчим часом.
-            </s-text>
-          </s-vertical-stack>
+            <p style={{ fontSize: "14px", color: "#6B7280" }}>
+              Налаштування секторів: назва виграшу, шанс випадіння та знижка.
+            </p>
+          </div>
+
+          <Form method="post">
+            <input type="hidden" name="intent" value="saveWheel" />
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gap: "16px",
+              }}
+            >
+              {[1, 2, 3, 4, 5, 6].map((i) => {
+                const segKey = `segment${i}`;
+                const seg = wheelSetting?.[segKey] || {};
+
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      background: "#F9FAFB",
+                      border: "1px solid #E5E7EB",
+                      borderRadius: "12px",
+                      padding: "14px",
+                    }}
+                  >
+                    <h3
+                      style={{
+                        fontSize: "16px",
+                        fontWeight: 600,
+                        marginBottom: "4px",
+                      }}
+                    >
+                      Сектор {i}
+                    </h3>
+
+                    <p
+                      style={{
+                        fontSize: "12px",
+                        color: "#6B7280",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      Параметри виграшу для сектору {i}.
+                    </p>
+
+                    {/* Назва */}
+                    <label style={{ fontSize: 12 }}>Назва (label)</label>
+                    <input
+                      type="text"
+                      name={`s${i}_label`}
+                      defaultValue={seg.label || ""}
+                      style={{
+                        width: "93%",
+                        padding: "6px 8px",
+                        borderRadius: 8,
+                        border: "1px solid #D1D5DB",
+                        marginTop: 2,
+                        marginBottom: 8,
+                        fontSize: 13,
+                      }}
+                    />
+
+                    {/* Шанс */}
+                    <label style={{ fontSize: 12 }}>Шанс випадіння (%)</label>
+                    <input
+                      type="number"
+                      name={`s${i}_chance`}
+                      min="0"
+                      max="100"
+                      defaultValue={
+                        typeof seg.chance === "number" ? seg.chance : ""
+                      }
+                      style={{
+                        width: "93%",
+                        padding: "6px 8px",
+                        borderRadius: 8,
+                        border: "1px solid #D1D5DB",
+                        marginTop: 2,
+                        marginBottom: 8,
+                        fontSize: 13,
+                      }}
+                    />
+
+                    {/* Тип + значення */}
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <div style={{ flex: "0 0 45%" }}>
+                        <label style={{ fontSize: 12 }}>Тип знижки</label>
+                        <select
+                          name={`s${i}_dtype`}
+                          defaultValue={seg.discountType || "PERCENT"}
+                          style={{
+                            width: "93%",
+                            padding: "6px 8px",
+                            borderRadius: 8,
+                            border: "1px solid #D1D5DB",
+                            marginTop: 2,
+                            fontSize: 13,
+                          }}
+                        >
+                          <option value="PERCENT">% від суми</option>
+                          <option value="FIXED">Фіксована сума</option>
+                          <option value="FREESHIP">Безкоштовна доставка</option>
+                      </select>
+
+                      </div>
+
+                      <div style={{ flex: "1 1 55%" }}>
+                        <label style={{ fontSize: 12 }}>Розмір знижки</label>
+                        <input
+                          type="number"
+                          name={`s${i}_dvalue`}
+                          defaultValue={
+                            typeof seg.discountValue === "number"
+                              ? seg.discountValue
+                              : ""
+                          }
+                          style={{
+                            width: "86%",
+                            padding: "6px 8px",
+                            borderRadius: 8,
+                            border: "1px solid #D1D5DB",
+                            marginTop: 2,
+                            fontSize: 13,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+
+            {/* Кнопка + повідомлення справа */}
+            <div
+              style={{
+                marginTop: 20,
+                display: "flex",
+                alignItems: "center",
+                gap: "16px",
+              }}
+            >
+              <button
+                type="submit"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "6px 14px",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: "pointer",
+                  backgroundColor: "#008060",
+                  color: "#ffffff",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                }}
+              >
+                Зберегти налаштування колеса
+              </button>
+
+              {/* Статус збереження саме для колеса */}
+              {actionData?.okWheel && (
+                <s-text as="span" variant="bodySm" tone="success">
+                  Збережено налаштування колеса ✅
+                </s-text>
+              )}
+              {actionData?.okWheel === false && (
+                <s-text as="span" variant="bodySm" tone="critical">
+                  {actionData.messageWheel || "Помилка при збереженні колеса."}
+                </s-text>
+              )}
+            </div>
+
+          </Form>
         </s-card-section>
       </s-section>
+
+
     </s-page>
   );
 }

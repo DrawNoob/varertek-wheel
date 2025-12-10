@@ -13,6 +13,7 @@ model CountdownAnswer {
   email      String?
   answer     String
   deviceType String?
+  discountCode String?
   createdAt  DateTime @default(now())
 }
 
@@ -23,6 +24,18 @@ model CountdownSetting {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model WheelSetting {
+  id      String   @id @default(cuid())
+  shop    String   @unique
+
+  segment1 Json
+  segment2 Json
+  segment3 Json
+  segment4 Json
+  segment5 Json
+  segment6 Json
 }
 
 

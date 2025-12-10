@@ -16,6 +16,7 @@ export function CountdownAnswersPage({ rows }) {
                 <tr>
                   <th style={{ textAlign: "left", padding: 8 }}>Email</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Відповідь</th>
+                  <th style={{ textAlign: "left", padding: 8 }}>Код</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Коли</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Девайс</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Дія</th>
@@ -33,38 +34,38 @@ export function CountdownAnswersPage({ rows }) {
                         : r.answer || "—"}
                     </td>
                     <td style={{ padding: 8 }}>
+                      {r.discountCode || "—"}
+                    </td>
+                    <td style={{ padding: 8 }}>
                       {new Date(r.createdAt).toLocaleString()}
                     </td>
                     <td style={{ padding: 8 }}>{r.deviceType || "—"}</td>
                     <td style={{ padding: 8 }}>
-                        <Form method="post">
-                            <input type="hidden" name="intent" value="delete" />
-                            <input type="hidden" name="id" value={r.id} />
+                      <Form method="post">
+                        <input type="hidden" name="intent" value="delete" />
+                        <input type="hidden" name="id" value={r.id} />
 
-                            {/* Обгортка-як-submit, s-button всередині для краси */}
-                            <button
-                            type="submit"
-                            style={{
-                                border: "none",
-                                background: "transparent",
-                                padding: 0,
-                                cursor: "pointer",
-                            }}
-                            >
-                            <s-button tone="critical" variant="plain">
-                                Видалити
-                            </s-button>
-                            </button>
-                        </Form>
+                        <button
+                          type="submit"
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            padding: 0,
+                            cursor: "pointer",
+                          }}
+                        >
+                          <s-button tone="critical" variant="plain">
+                            Видалити
+                          </s-button>
+                        </button>
+                      </Form>
                     </td>
-
-
                   </tr>
                 ))}
 
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ padding: 12, color: "#666" }}>
+                    <td colSpan={6} style={{ padding: 12, color: "#666" }}>
                       Поки порожньо.
                     </td>
                   </tr>
