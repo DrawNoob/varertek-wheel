@@ -1,9 +1,9 @@
 // app/routes/proxy.vadertek-timer.jsx
 
 import { prisma } from "../db.server";
-import { unauthenticated } from "../shopify.server";
+import { authenticate } from "../shopify.server";
 
-// Отримуємо shop із параметрів proxy
+// Отримуємо shop із параметрів proxy (fallback)
 function getShopFromRequest(request) {
   const url = new URL(request.url);
   return url.searchParams.get("shop");
@@ -54,7 +54,35 @@ export async function loader({ request }) {
 // POST → логіка відповіді + wheelSpin
 // ------------------------------------------------------------
 export async function action({ request }) {
-  const shop = getShopFromRequest(request);
+  // 🔐 ОФІЦІЙНА АВТЕНТИФІКАЦІЯ ДЛЯ APP PROXY
+  let admin, session;
+
+  try {
+    const ctx = await authenticate.public.appProxy(request);
+    admin = ctx.admin;
+    session = ctx.session;
+  } catch (err) {
+    console.error("authenticate.public.appProxy ERROR:", err);
+    return json(
+      {
+        ok: false,
+        message:
+          "Не вдалося автентифікувати запит проксі (appProxy). Перевір налаштування app proxy в адмінці.",
+      },
+      200,
+    );
+  }
+
+  // shop беремо з session, якщо є; інакше fallback з query
+  const shop = session?.shop || getShopFromRequest(request);
+
+  if (!shop) {
+    console.error("APP PROXY ACTION: no shop (session or query)");
+    return json(
+      { ok: false, message: "Не вдалося визначити магазин (shop)." },
+      200,
+    );
+  }
 
   let body = {};
   try {
@@ -71,7 +99,7 @@ export async function action({ request }) {
   if (intent === "wheelSpin") {
     const email = body.email?.trim() || null;
 
-    if (!email || !shop) {
+    if (!email) {
       return json({ ok: false, message: "Email required." }, 400);
     }
 
@@ -131,20 +159,33 @@ export async function action({ request }) {
     const chosen = segments[winIndex];
 
     // Генеруємо унікальний промокод
-    const code = ("WHEEL-" + Math.random().toString(36).substring(2, 10)).toUpperCase();
+    const code = (
+      "WHEEL-" + Math.random().toString(36).substring(2, 10)
+    ).toUpperCase();
     const nowIso = new Date().toISOString();
 
     // -------------------------------------------------------------------
-    // 2️⃣ СТВОРЕННЯ ЗНИЖКИ В SHOPIFY
+    // 2️⃣ СТВОРЕННЯ ЗНИЖКИ В SHOPIFY ЧЕРЕЗ admin.graphql
+    // -------------------------------------------------------------------
+    if (!admin) {
+      console.error(
+        "No admin client from authenticate.public.appProxy. Is app installed on this shop?",
+      );
+      return json(
+        {
+          ok: false,
+          message:
+            "Помилка: admin API недоступний для цього магазину. Перевір, що аппка встановлена.",
+        },
+        200,
+      );
+    }
+
     try {
-      // Беремо offline-сесію по домену магазину
-      const { admin } = await unauthenticated.admin(shop);
-
-
-      // ----------------------------
-      // FREE SHIPPING
-      // ----------------------------
       if (chosen.discountType === "FREESHIP") {
+        // ----------------------------
+        // FREE SHIPPING
+        // ----------------------------
         const response = await admin.graphql(
           `#graphql
           mutation discountCodeFreeShippingCreate($discount: DiscountCodeFreeShippingInput!) {
@@ -165,29 +206,33 @@ export async function action({ request }) {
                 appliesOncePerCustomer: false,
               },
             },
-          }
+          },
         );
 
         const jsonResp = await response.json();
-        console.log("FreeShip GraphQL resp:", JSON.stringify(jsonResp));
-        const errs = jsonResp?.data?.discountCodeFreeShippingCreate?.userErrors;
+        console.log(
+          "FreeShip GraphQL resp:",
+          JSON.stringify(jsonResp, null, 2),
+        );
+        const errs =
+          jsonResp?.data?.discountCodeFreeShippingCreate?.userErrors;
 
         if (errs?.length) {
           console.error("FreeShip errors:", errs);
           return json(
             {
               ok: false,
-              message: `Помилка створення знижки: ${errs[0].message || "unknown error"}`,
+              message: `Помилка створення знижки: ${
+                errs[0].message || "unknown error"
+              }`,
             },
-            200
+            200,
           );
         }
-      }
-
-      // ----------------------------
-      // PERCENT or FIXED AMOUNT
-      // ----------------------------
-      else {
+      } else {
+        // ----------------------------
+        // PERCENT or FIXED AMOUNT
+        // ----------------------------
         const isPercent = chosen.discountType === "PERCENT";
         const valueNumber = Number(chosen.discountValue || 0);
 
@@ -209,7 +254,7 @@ export async function action({ request }) {
                 customerSelection: { all: true },
                 customerGets: {
                   value: isPercent
-                    ? { percentage: valueNumber / 100 } // Shopify хоче 0.15, а не 15
+                    ? { percentage: valueNumber / 100 } // 15% → 0.15
                     : {
                         discountAmount: {
                           amount: String(valueNumber),
@@ -221,45 +266,42 @@ export async function action({ request }) {
                 appliesOncePerCustomer: false,
               },
             },
-          }
+          },
         );
 
         const jsonResp = await response.json();
-        console.log("Basic discount GraphQL resp:", JSON.stringify(jsonResp));
-        const errs = jsonResp?.data?.discountCodeBasicCreate?.userErrors;
+        console.log(
+          "Basic discount GraphQL resp:",
+          JSON.stringify(jsonResp, null, 2),
+        );
+        const errs =
+          jsonResp?.data?.discountCodeBasicCreate?.userErrors;
 
         if (errs?.length) {
           console.error("Discount errors:", errs);
           return json(
             {
               ok: false,
-              message: `Помилка створення знижки: ${errs[0].message || "unknown error"}`,
+              message: `Помилка створення знижки: ${
+                errs[0].message || "unknown error"
+              }`,
             },
-            200
+            200,
           );
         }
       }
     } catch (err) {
       console.error("Shopify discount create ERROR:", err);
-
-      // Спробуємо витягнути хоч якийсь текст
-      let msg = "Невідома помилка при створенні знижки.";
-      if (err && typeof err === "object") {
-        if (err.message) msg = err.message;
-        else msg = String(err);
-      } else if (err) {
-        msg = String(err);
-      }
-
       return json(
         {
           ok: false,
-          message: `Помилка створення знижки (backend): ${msg}`,
+          message:
+            "Помилка створення знижки (backend): " +
+            String(err?.message || err),
         },
-        200
+        200,
       );
     }
-
 
     // -------------------------------------------------------------------
     // 3️⃣ ЗАПИСАТИ В БД (щоб знати що email вже грав)
@@ -294,7 +336,7 @@ export async function action({ request }) {
   const answer = body.answer || null;
   const deviceType = body.device_type || null;
 
-  if (!answer || !shop) {
+  if (!answer) {
     return json({ ok: false }, 400);
   }
 
