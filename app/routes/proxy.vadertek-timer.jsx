@@ -1,7 +1,7 @@
 // app/routes/proxy.vadertek-timer.jsx
 
 import { prisma } from "../db.server";
-import { authenticate } from "../shopify.server";
+import { unauthenticated } from "../shopify.server";
 
 // Отримуємо shop із параметрів proxy
 function getShopFromRequest(request) {
@@ -136,9 +136,10 @@ export async function action({ request }) {
 
     // -------------------------------------------------------------------
     // 2️⃣ СТВОРЕННЯ ЗНИЖКИ В SHOPIFY
-    // -------------------------------------------------------------------
     try {
-      const { admin } = await authenticate.public.appProxy(request);
+      // Беремо offline-сесію по домену магазину
+      const { admin } = await unauthenticated.admin(shop);
+
 
       // ----------------------------
       // FREE SHIPPING
