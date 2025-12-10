@@ -160,7 +160,7 @@ export async function action({ request }) {
 
     // Генеруємо унікальний промокод
     const code = (
-      "WHEEL-" + Math.random().toString(36).substring(2, 10)
+      "CHERIE-" + Math.random().toString(36).substring(2, 10)
     ).toUpperCase();
     const nowIso = new Date().toISOString();
 
