@@ -172,7 +172,7 @@
 
           // 3) Текст успіху (БЕЗ показу коду)
           showError("");
-          showSuccess(`${defaultSuccess} Ваш виграш: ${label}`);
+          showSuccess(`${defaultSuccess} Ваш виграш: ${label}. Код дійсний 3 доби.`);
           if (centerEl) {
             centerEl.textContent = "✓";
           }

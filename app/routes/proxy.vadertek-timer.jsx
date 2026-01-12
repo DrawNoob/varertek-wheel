@@ -163,6 +163,7 @@ export async function action({ request }) {
       "CHERIE-" + Math.random().toString(36).substring(2, 10)
     ).toUpperCase();
     const nowIso = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
 
     // -------------------------------------------------------------------
     // 2️⃣ СТВОРЕННЯ ЗНИЖКИ В SHOPIFY ЧЕРЕЗ admin.graphql
@@ -201,9 +202,11 @@ export async function action({ request }) {
                 title: chosen.label || "Wheel – Free Shipping",
                 code,
                 startsAt: nowIso,
+                endsAt: expiresAt,
                 customerSelection: { all: true },
                 destination: { all: true },
-                appliesOncePerCustomer: false,
+                appliesOncePerCustomer: true,
+                usageLimit: 1,
               },
             },
           },
@@ -251,6 +254,7 @@ export async function action({ request }) {
                 title: chosen.label || "Wheel discount",
                 code,
                 startsAt: nowIso,
+                endsAt: expiresAt,
                 customerSelection: { all: true },
                 customerGets: {
                   value: isPercent
@@ -263,7 +267,8 @@ export async function action({ request }) {
                       },
                   items: { all: true },
                 },
-                appliesOncePerCustomer: false,
+                appliesOncePerCustomer: true,
+                usageLimit: 1,
               },
             },
           },
@@ -363,3 +368,4 @@ function json(data, status = 200) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
