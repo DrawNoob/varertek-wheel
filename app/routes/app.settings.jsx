@@ -9,17 +9,91 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { prisma } from "../db.server";
 
+async function fetchShopTimezone(admin) {
+  try {
+    const response = await admin.graphql(
+      `#graphql
+      query ShopTimezone {
+        shop {
+          ianaTimezone
+        }
+      }
+      `,
+    );
+    const json = await response.json();
+    return json?.data?.shop?.ianaTimezone || null;
+  } catch (err) {
+    console.error("Failed to fetch shop timezone", err);
+    return null;
+  }
+}
+
+function zonedTimeToUtc(localDateTime, timeZone) {
+  if (!timeZone) return new Date(localDateTime);
+  const [datePart, timePart] = String(localDateTime).split("T");
+  if (!datePart || !timePart) return new Date(localDateTime);
+
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+
+  const utcDate = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  // Convert "local in TZ" to a UTC Date without extra deps.
+  const tzDate = new Date(formatter.format(utcDate));
+  const diff = utcDate.getTime() - tzDate.getTime();
+  return new Date(utcDate.getTime() + diff);
+}
+
+function formatDateTimeForInput(isoDate, timeZone) {
+  if (!isoDate) return "";
+  const date = new Date(isoDate);
+  if (!timeZone) {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
+      date.getDate(),
+    )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = formatter.formatToParts(date).reduce((acc, part) => {
+    if (part.type !== "literal") acc[part.type] = part.value;
+    return acc;
+  }, {});
+
+  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
+}
+
 // ----------------------
 //        LOADER
 // ----------------------
 export async function loader({ request }) {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const shop = session.shop;
 
   let countdownEnd = null;
   let wheelSetting = null;
+  let shopTimezone = null;
 
   try {
+    shopTimezone = await fetchShopTimezone(admin);
     const [countdownRecord, wheel] = await Promise.all([
       prisma.countdownSetting.findUnique({
         where: { shop },
@@ -38,7 +112,7 @@ export async function loader({ request }) {
     console.error("Failed to load settings from DB", e);
   }
 
-  return { countdownEnd, wheelSetting };
+  return { countdownEnd, wheelSetting, shopTimezone };
 }
 
 
@@ -49,7 +123,7 @@ export async function loader({ request }) {
 //        ACTION
 // ----------------------
 export async function action({ request }) {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const shop = session.shop;
 
   const formData = await request.formData();
@@ -105,7 +179,8 @@ export async function action({ request }) {
   }
 
   try {
-    const isoValue = new Date(raw).toISOString();
+    const shopTimezone = await fetchShopTimezone(admin);
+    const isoValue = zonedTimeToUtc(raw, shopTimezone).toISOString();
 
     await prisma.countdownSetting.upsert({
       where: { shop },
@@ -128,27 +203,13 @@ export async function action({ request }) {
 //       COMPONENT
 // ----------------------
 export default function SettingsPage() {
-  const { countdownEnd, wheelSetting } = useLoaderData();
+  const { countdownEnd, wheelSetting, shopTimezone } = useLoaderData();
   const actionData = useActionData();
 
-
-  let defaultValue = "";
-  if (countdownEnd) {
-    try {
-      const d = new Date(countdownEnd);
-      const pad = (n) => String(n).padStart(2, "0");
-
-      const year = d.getFullYear();
-      const month = pad(d.getMonth() + 1);
-      const day = pad(d.getDate());
-      const hours = pad(d.getHours());
-      const minutes = pad(d.getMinutes());
-
-      defaultValue = `${year}-${month}-${day}T${hours}:${minutes}`;
-    } catch {
-      defaultValue = "";
-    }
-  }
+  const defaultValue = formatDateTimeForInput(
+    countdownEnd,
+    shopTimezone || null,
+  );
 
   return (
     <s-page heading="Налаштування таймера">
@@ -196,7 +257,11 @@ export default function SettingsPage() {
               {/* Поточне значення */}
               {countdownEnd && (
                 <s-text as="p" variant="bodySm" tone="subdued">
-                  Поточне значення: {new Date(countdownEnd).toLocaleString()}
+                  Поточне значення:{" "}
+                  {new Date(countdownEnd).toLocaleString(
+                    undefined,
+                    shopTimezone ? { timeZone: shopTimezone } : undefined,
+                  )}
                 </s-text>
               )}
 

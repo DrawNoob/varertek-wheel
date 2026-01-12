@@ -38,6 +38,18 @@ model WheelSetting {
   segment6 Json
 }
 
+model UserEvent {
+  id            Int      @id @default(autoincrement())
+  shop          String
+  email         String?
+  eventType     String
+  url           String
+  productHandle String?
+  deviceType    String?
+  eventData     Json?
+  createdAt     DateTime @default(now())
+}
+
 
 model Session {
   id            String    @id

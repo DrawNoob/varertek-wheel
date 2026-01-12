@@ -90,6 +90,19 @@
         return /\S+@\S+\.\S+/.test(value);
       }
 
+      function rememberEmail(value) {
+        if (!value) return;
+        if (window.vtAnalytics && typeof window.vtAnalytics.setEmail === "function") {
+          window.vtAnalytics.setEmail(value);
+          return;
+        }
+        try {
+          window.localStorage.setItem("vt_email", value);
+        } catch {
+          // ignore
+        }
+      }
+
       // Відкриття/закриття попапа
       function openOverlay() {
         overlay.classList.remove("vt-wheel-overlay--hidden");
@@ -137,6 +150,7 @@
           showError(errorMessage);
           return;
         }
+        rememberEmail(email);
 
         const deviceType = window.innerWidth < 768 ? "Mobile" : "Desktop";
 
@@ -172,7 +186,7 @@
 
           // 3) Текст успіху (БЕЗ показу коду)
           showError("");
-          showSuccess(`${defaultSuccess} Ваш виграш: ${label}`);
+          showSuccess(`${defaultSuccess} Ваш виграш: ${label}. Код дійсний 3 доби.`);
           if (centerEl) {
             centerEl.textContent = "✓";
           }

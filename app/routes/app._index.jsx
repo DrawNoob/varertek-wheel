@@ -1,4 +1,4 @@
-// app._index.jsx
+﻿// app._index.jsx
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate, apiVersion } from "../shopify.server";
@@ -25,15 +25,15 @@ export default function Index() {
 
   return (
     <s-page heading={meta.appName}>
-      {/* Hero / опис */}
       <s-section>
         <s-paragraph>
-          Легка апка для зворотнього відліку через віджет <b>Countdown Timer</b>.
-          Додавай блок у тему, міняй кольори і керуй показом.
+          Апка для віджета <b>Countdown Timer</b> та маркетингових механік.
+          Є wheel‑знижки, опитування, і аналітика дій за 7 днів.
         </s-paragraph>
 
         <s-stack direction="inline" gap="base">
           <s-link href="/app/settings">Відкрити Settings</s-link>
+          <s-link href="/app/analytics">Відкрити Analytics</s-link>
           <s-button
             href="https://shopify.dev/docs/apps"
             target="_blank"
@@ -44,7 +44,6 @@ export default function Index() {
         </s-stack>
       </s-section>
 
-      {/* Версії / Build info */}
       <s-section
         heading="Версії"
         style={{
@@ -76,11 +75,13 @@ export default function Index() {
         </s-box>
       </s-section>
 
-      {/* Правий сайдбар */}
-      <s-section slot="aside" heading="Посилання">
+      <s-section slot="aside" heading="Швидкі посилання">
         <s-unordered-list>
           <s-list-item>
             <s-link href="/app/settings">Налаштування (Settings)</s-link>
+          </s-list-item>
+          <s-list-item>
+            <s-link href="/app/analytics">Аналітика</s-link>
           </s-list-item>
           <s-list-item>
             <s-link href="/app/changes">Changelog</s-link>
@@ -103,7 +104,7 @@ export default function Index() {
 
       <s-section slot="aside" heading="Підтримка">
         <s-paragraph>
-          Питання/ідеї:{" "}
+          Email підтримки:{" "}
           <s-link href="mailto:support@vadertek.io">
             p.leiko@vadertek.com
           </s-link>
