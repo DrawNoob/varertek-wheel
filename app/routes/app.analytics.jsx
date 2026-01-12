@@ -3,6 +3,9 @@ import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { prisma } from "../db.server";
 
+const MAX_TOOLTIP_ITEMS = 20;
+const MAX_EVENTS_FOR_TOOLTIPS = 5000;
+
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
@@ -29,9 +32,52 @@ export const loader = async ({ request }) => {
     _count: { _all: true },
   });
 
+  const recentEvents = await prisma.userEvent.findMany({
+    where: {
+      shop,
+      email: { not: null },
+    },
+    select: {
+      email: true,
+      eventType: true,
+      url: true,
+      productHandle: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: MAX_EVENTS_FOR_TOOLTIPS,
+  });
+
+  const tooltipData = recentEvents.reduce((acc, event) => {
+    if (!event.email) return acc;
+    if (!acc[event.email]) {
+      acc[event.email] = {
+        page_view: [],
+        product_click: [],
+        add_to_cart: [],
+      };
+    }
+
+    const target = acc[event.email][event.eventType];
+    if (!target) return acc;
+
+    let value = null;
+    if (event.eventType === "product_click") {
+      value = event.productHandle || event.url;
+    } else {
+      value = event.url;
+    }
+
+    if (value && !target.includes(value) && target.length < MAX_TOOLTIP_ITEMS) {
+      target.push(value);
+    }
+
+    return acc;
+  }, {});
+
   return {
     users,
     eventTypeCounts,
+    tooltipData,
   };
 };
 
@@ -49,7 +95,7 @@ function formatEventType(type) {
 }
 
 export default function AnalyticsPage() {
-  const { users, eventTypeCounts } = useLoaderData();
+  const { users, eventTypeCounts, tooltipData } = useLoaderData();
   const countsByEmail = eventTypeCounts.reduce((acc, row) => {
     const email = row.email;
     if (!acc[email]) acc[email] = [];
@@ -59,6 +105,27 @@ export default function AnalyticsPage() {
     });
     return acc;
   }, {});
+
+  const tooltipFor = (email, eventType) => {
+    const items = tooltipData?.[email]?.[eventType] || [];
+    if (items.length === 0) return "";
+    return items
+      .map((item) => {
+        try {
+          const url = new URL(item);
+          const decodedPath = decodeURIComponent(url.pathname);
+          const decodedSearch = url.search ? decodeURIComponent(url.search) : "";
+          return `${url.hostname}${decodedPath}${decodedSearch}`;
+        } catch {
+          try {
+            return decodeURIComponent(item);
+          } catch {
+            return item;
+          }
+        }
+      })
+      .join("\n");
+  };
 
   return (
     <s-page heading="Analytics">
@@ -94,7 +161,9 @@ export default function AnalyticsPage() {
                       {(countsByEmail[row.email] || []).length > 0
                         ? (countsByEmail[row.email] || []).map((entry) => (
                             <div key={entry.type}>
-                              {formatEventType(entry.type)}: {entry.count}
+                              <span title={tooltipFor(row.email, entry.type)}>
+                                {formatEventType(entry.type)}: {entry.count}
+                              </span>
                             </div>
                           ))
                         : "-"}
