@@ -3,6 +3,19 @@
   const PROXY_URL = "/apps/vadertek-timer";
 
   function initSurvey(root) {
+    function rememberEmail(value) {
+      if (!value) return;
+      if (window.vtAnalytics && typeof window.vtAnalytics.setEmail === "function") {
+        window.vtAnalytics.setEmail(value);
+        return;
+      }
+      try {
+        window.localStorage.setItem("vt_email", value);
+      } catch {
+        // ignore
+      }
+    }
+
     function sendAnswer(answer) {
       const emailInput = root.querySelector(".vt-survey-email-input");
       const inputValue = emailInput ? emailInput.value.trim() : "";
@@ -16,6 +29,8 @@
         answer,
         device_type: deviceType
       });
+
+      rememberEmail(email);
 
       fetch(PROXY_URL, {
         method: "POST",

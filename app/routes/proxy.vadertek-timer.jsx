@@ -92,6 +92,38 @@ export async function action({ request }) {
   }
 
   const intent = body.intent || null;
+  // -------------------------------------------------------------------
+  // 0) Track analytics events (page views, product clicks, add to cart)
+  // -------------------------------------------------------------------
+  if (intent === "trackEvent") {
+    const eventType = String(body.eventType || "");
+    const email = body.email?.trim() || "non-logged-in";
+    const url = body.url ? String(body.url) : null;
+    const productHandle = body.productHandle ? String(body.productHandle) : null;
+    const deviceType = body.device_type || null;
+
+    if (!eventType || !url) {
+      return json({ ok: false }, 400);
+    }
+
+    try {
+      await prisma.userEvent.create({
+        data: {
+          shop,
+          email,
+          eventType,
+          url,
+          productHandle,
+          deviceType,
+          eventData: body.eventData || null,
+        },
+      });
+    } catch (e) {
+      console.error("APP PROXY ANALYTICS DB error", e);
+    }
+
+    return json({ ok: true });
+  }
 
   // -------------------------------------------------------------------
   // 1️⃣ НОВИЙ INTENT → КОЛЕСО ФОРТУНИ (створення знижки)
@@ -368,4 +400,5 @@ function json(data, status = 200) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
 
