@@ -5,6 +5,14 @@ import { prisma } from "../db.server";
 
 const MAX_TOOLTIP_ITEMS = 20;
 const MAX_EVENTS_FOR_TOOLTIPS = 5000;
+const MAX_EVENTS_FOR_SUMMARY = 20000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function startOfDay(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
@@ -42,6 +50,7 @@ export const loader = async ({ request }) => {
       eventType: true,
       url: true,
       productHandle: true,
+      eventData: true,
     },
     orderBy: { createdAt: "desc" },
     take: MAX_EVENTS_FOR_TOOLTIPS,
@@ -54,6 +63,7 @@ export const loader = async ({ request }) => {
         page_view: [],
         product_click: [],
         add_to_cart: [],
+        button_click: [],
       };
     }
 
@@ -63,6 +73,8 @@ export const loader = async ({ request }) => {
     let value = null;
     if (event.eventType === "product_click") {
       value = event.productHandle || event.url;
+    } else if (event.eventType === "button_click") {
+      value = event.eventData?.label || event.url;
     } else {
       value = event.url;
     }
@@ -74,10 +86,76 @@ export const loader = async ({ request }) => {
     return acc;
   }, {});
 
+  const startDate = startOfDay(new Date());
+  startDate.setDate(startDate.getDate() - 6);
+
+  const summaryEvents = await prisma.userEvent.findMany({
+    where: {
+      shop,
+      createdAt: { gte: startDate },
+      eventType: { in: ["page_view", "add_to_cart", "button_click"] },
+    },
+    select: {
+      createdAt: true,
+      eventType: true,
+      email: true,
+    },
+    orderBy: { createdAt: "desc" },
+    take: MAX_EVENTS_FOR_SUMMARY,
+  });
+
+  const totalsByType = {
+    page_view: 0,
+    add_to_cart: 0,
+    button_click: 0,
+  };
+  const totalsByDay = Array(7).fill(0);
+  const dailyByType = Array.from({ length: 7 }, () => ({
+    page_view: 0,
+    add_to_cart: 0,
+    button_click: 0,
+  }));
+  const uniqueUsers = new Set();
+
+  summaryEvents.forEach((event) => {
+    if (totalsByType[event.eventType] !== undefined) {
+      totalsByType[event.eventType] += 1;
+    }
+
+    const day = startOfDay(event.createdAt);
+    const index = Math.floor((day.getTime() - startDate.getTime()) / DAY_MS);
+    if (index >= 0 && index < totalsByDay.length) {
+      totalsByDay[index] += 1;
+      if (dailyByType[index] && dailyByType[index][event.eventType] !== undefined) {
+        dailyByType[index][event.eventType] += 1;
+      }
+    }
+
+    if (event.email) {
+      uniqueUsers.add(event.email);
+    }
+  });
+
+  const labels = Array.from({ length: 7 }, (_, idx) => {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + idx);
+    return d.toISOString().slice(0, 10);
+  });
+
   return {
     users,
     eventTypeCounts,
     tooltipData,
+    summary: {
+      totalEvents: summaryEvents.length,
+      totalsByType,
+      uniqueUsers: uniqueUsers.size,
+    },
+    chart: {
+      labels,
+      totalsByDay,
+      dailyByType,
+    },
   };
 };
 
@@ -89,13 +167,21 @@ function formatEventType(type) {
       return "Клік по продукту";
     case "add_to_cart":
       return "Додав у кошик";
+    case "button_click":
+      return "Клік по кнопці";
     default:
       return type;
   }
 }
 
+function formatDateLabel(isoDate) {
+  const parts = String(isoDate).split("-");
+  if (parts.length !== 3) return isoDate;
+  return `${parts[2]}.${parts[1]}`;
+}
+
 export default function AnalyticsPage() {
-  const { users, eventTypeCounts, tooltipData } = useLoaderData();
+  const { users, eventTypeCounts, tooltipData, summary, chart } = useLoaderData();
   const countsByEmail = eventTypeCounts.reduce((acc, row) => {
     const email = row.email;
     if (!acc[email]) acc[email] = [];
@@ -127,11 +213,101 @@ export default function AnalyticsPage() {
       .join("\n");
   };
 
+  const maxValue = Math.max(1, ...chart.totalsByDay);
+  const width = 700;
+  const height = 180;
+  const padding = 30;
+  const points = chart.totalsByDay.map((value, idx) => {
+    const breakdown = chart.dailyByType?.[idx] || {
+      page_view: 0,
+      add_to_cart: 0,
+      button_click: 0,
+    };
+    const x = padding + (idx / (chart.totalsByDay.length - 1)) * (width - padding * 2);
+    const y = height - padding - (value / maxValue) * (height - padding * 2);
+    return { x, y, value, label: chart.labels[idx], breakdown };
+  });
+  const linePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
+
   return (
     <s-page heading="Analytics">
       <s-section>
         <s-card-section>
-          <strong>Користувачi: {users.length}</strong>
+          <strong>Загальна аналітика за 7 днів</strong>
+        </s-card-section>
+        <s-card-section>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              gap: "12px",
+            }}
+          >
+            <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>Всього подій</div>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>{summary.totalEvents}</div>
+            </div>
+            <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>Перегляди сторінки</div>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>{summary.totalsByType.page_view}</div>
+            </div>
+            <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>Додавання у кошик</div>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>{summary.totalsByType.add_to_cart}</div>
+            </div>
+            <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>Кліки по кнопках</div>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>{summary.totalsByType.button_click}</div>
+            </div>
+            <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>Користувачі</div>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>{summary.uniqueUsers}</div>
+            </div>
+          </div>
+        </s-card-section>
+        <s-card-section>
+          <div style={{ width: "100%", overflowX: "auto" }}>
+            <svg viewBox={`0 0 ${width} ${height}`} style={{ width: "100%", height: 200 }}>
+              <polyline
+                points={linePoints}
+                fill="none"
+                stroke="#2563eb"
+                strokeWidth="2"
+              />
+              {points.map((point, idx) => (
+                <g key={idx}>
+                  <circle
+                    cx={point.x}
+                    cy={point.y}
+                    r="3"
+                    fill="#2563eb"
+                    style={{ cursor: "pointer" }}
+                  >
+                    <title>
+                      {`Перегляд сторінки: ${point.breakdown.page_view}\nКлік по кнопці: ${point.breakdown.button_click}\nДодав у кошик: ${point.breakdown.add_to_cart}`}
+                    </title>
+                  </circle>
+                  <text
+                    x={point.x}
+                    y={height - padding + 24}
+                    textAnchor="middle"
+                    fontSize="11"
+                    fill="#6b7280"
+                  >
+                    {formatDateLabel(point.label)}
+                  </text>
+                </g>
+              ))}
+              <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#e5e7eb" />
+              <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#e5e7eb" />
+            </svg>
+          </div>
+        </s-card-section>
+      </s-section>
+
+      <s-section>
+        <s-card-section>
+          <strong>Користувачі: {users.length}</strong>
         </s-card-section>
         <s-divider />
         <s-card-section>
@@ -140,11 +316,9 @@ export default function AnalyticsPage() {
               <thead>
                 <tr>
                   <th style={{ textAlign: "left", padding: 8 }}>Email</th>
-                  <th style={{ textAlign: "left", padding: 8 }}>Подii</th>
+                  <th style={{ textAlign: "left", padding: 8 }}>Події</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Остання</th>
-                  <th style={{ textAlign: "left", padding: 8 }}>
-                    Якi подii
-                  </th>
+                  <th style={{ textAlign: "left", padding: 8 }}>Які події</th>
                 </tr>
               </thead>
               <tbody>
@@ -192,4 +366,3 @@ export function ErrorBoundary() {
 }
 
 export const headers = (h) => boundary.headers(h);
-

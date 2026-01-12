@@ -1,13 +1,23 @@
-// app/data/changelog.js
+﻿// app/data/changelog.js
 
-export const changelog = [
+export const changelog = [  {
+    date: "2026-01-12",
+    title: "Analytics + tracking update",
+    items: [
+      "Додано аналітику за 7 днів (page view, add to cart, button click) з графіком",
+      "Sitewide tracking через app embed",
+      "Список користувачів і зведення подій по email",
+      "Коди знижок одноразові та діють 3 доби",
+      "Таймер зберігається в таймзоні магазину",
+    ],
+  },
   {
     date: "2025-12-10",
     title: "Wheel Discount System — FULLY ENABLED",
     items: [
       "Додано повну інтеграцію створення знижок через Shopify Admin API",
       "Реалізовано три типи знижок: % від суми, фіксована сума, Free Shipping",
-      "Автоматична генерація унікальних промокодів у форматі WHEEL-XXXX",
+      "Автоматична генерація унікальних промокодів у форматі CHERIE-XXXX",
       "Виправлено SCOPES в конфігурації апки + синхронізовано з Shopify CLI",
       "Нові скоупи (write_discounts) успішно застосовані після релізу версії",
       "Підтверджено роботу App Proxy з правильним admin-клієнтом",

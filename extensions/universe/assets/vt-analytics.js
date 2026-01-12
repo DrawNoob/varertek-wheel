@@ -83,6 +83,14 @@
       sendEvent("add_to_cart", { productHandle: handle });
     }
 
+    function isAddToCart(button) {
+      if (!button) return false;
+      if (button.name === "add") return true;
+      const form = button.closest("form");
+      if (form && form.action && form.action.includes("/cart/add")) return true;
+      return false;
+    }
+
     document.addEventListener("submit", (event) => {
       const form = event.target;
       if (!form || !form.action) return;
@@ -93,9 +101,25 @@
     document.addEventListener("click", (event) => {
       const btn = event.target.closest('button[name="add"], button[type="submit"]');
       if (!btn) return;
-      const form = btn.closest("form");
-      if (!form || !form.action || !form.action.includes("/cart/add")) return;
+      if (!isAddToCart(btn)) return;
       fireAdd();
+    });
+  }
+
+  function trackButtonClicks() {
+    document.addEventListener("click", (event) => {
+      const btn = event.target.closest(
+        'button, input[type="button"], input[type="submit"], [role="button"]',
+      );
+      if (!btn) return;
+      if (btn.closest("form") && btn.closest("form").action?.includes("/cart/add")) {
+        return;
+      }
+      if (btn.name === "add") return;
+
+      const label =
+        (btn.textContent || btn.value || "").trim() || "button";
+      sendEvent("button_click", { eventData: { label } });
     });
   }
 
@@ -107,6 +131,7 @@
     trackPageView();
     trackProductClicks();
     trackAddToCart();
+    trackButtonClicks();
   });
 
   window.addEventListener("pageshow", (event) => {
