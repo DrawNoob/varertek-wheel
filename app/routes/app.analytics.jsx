@@ -65,6 +65,7 @@ export const loader = async ({ request }) => {
         add_to_cart: [],
         button_click: [],
         product_type_purchase: [],
+        product_type_paid: [],
       };
     }
 
@@ -74,7 +75,10 @@ export const loader = async ({ request }) => {
     let value = null;
     if (event.eventType === "product_click") {
       value = event.productHandle || event.url;
-    } else if (event.eventType === "product_type_purchase") {
+    } else if (
+      event.eventType === "product_type_purchase" ||
+      event.eventType === "product_type_paid"
+    ) {
       const types = Array.isArray(event.eventData?.types) ? event.eventData.types : [];
       value = types.length ? types.join(", ") : event.url;
     } else if (event.eventType === "button_click") {
@@ -103,6 +107,7 @@ export const loader = async ({ request }) => {
           "add_to_cart",
           "button_click",
           "product_type_purchase",
+          "product_type_paid",
         ],
       },
     },
@@ -121,6 +126,7 @@ export const loader = async ({ request }) => {
     add_to_cart: 0,
     button_click: 0,
     product_type_purchase: 0,
+    product_type_paid: 0,
   };
   const totalsByDay = Array(7).fill(0);
   const dailyByType = Array.from({ length: 7 }, () => ({
@@ -128,10 +134,13 @@ export const loader = async ({ request }) => {
     add_to_cart: 0,
     button_click: 0,
     product_type_purchase: 0,
+    product_type_paid: 0,
     productTypes: {},
+    productTypesPaid: {},
   }));
   const uniqueUsers = new Set();
   const summaryTypeCounts = {};
+  const summaryTypeCountsPaid = {};
 
   summaryEvents.forEach((event) => {
     if (totalsByType[event.eventType] !== undefined) {
@@ -156,6 +165,17 @@ export const loader = async ({ request }) => {
             (dailyByType[index].productTypes[key] || 0) + 1;
         });
       }
+
+      if (event.eventType === "product_type_paid") {
+        const types = Array.isArray(event.eventData?.types) ? event.eventData.types : [];
+        types.forEach((type) => {
+          const key = String(type).trim().toLowerCase();
+          if (!key) return;
+          summaryTypeCountsPaid[key] = (summaryTypeCountsPaid[key] || 0) + 1;
+          dailyByType[index].productTypesPaid[key] =
+            (dailyByType[index].productTypesPaid[key] || 0) + 1;
+        });
+      }
     }
 
     if (event.email) {
@@ -178,6 +198,7 @@ export const loader = async ({ request }) => {
       totalsByType,
       uniqueUsers: uniqueUsers.size,
       typeCounts: summaryTypeCounts,
+      typeCountsPaid: summaryTypeCountsPaid,
     },
     chart: {
       labels,
@@ -199,6 +220,8 @@ function formatEventType(type) {
       return "Клік по кнопці";
     case "product_type_purchase":
       return "Checkout (типи)";
+    case "product_type_paid":
+      return "Оплачені покупки (типи)";
     default:
       return type;
   }
@@ -228,6 +251,7 @@ export default function AnalyticsPage() {
     "add_to_cart",
     "button_click",
     "product_type_purchase",
+    "product_type_paid",
   ];
 
   const tooltipFor = (email, eventType) => {
@@ -261,7 +285,9 @@ export default function AnalyticsPage() {
       add_to_cart: 0,
       button_click: 0,
       product_type_purchase: 0,
+      product_type_paid: 0,
       productTypes: {},
+      productTypesPaid: {},
     };
     const x = padding + (idx / (chart.totalsByDay.length - 1)) * (width - padding * 2);
     const y = height - padding - (value / maxValue) * (height - padding * 2);
@@ -270,6 +296,8 @@ export default function AnalyticsPage() {
   const linePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
 
   const summaryTypeEntries = Object.entries(summary.typeCounts || {})
+    .sort((a, b) => b[1] - a[1]);
+  const summaryPaidTypeEntries = Object.entries(summary.typeCountsPaid || {})
     .sort((a, b) => b[1] - a[1]);
 
   return (
@@ -282,7 +310,7 @@ export default function AnalyticsPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
               gap: "12px",
             }}
           >
@@ -318,6 +346,18 @@ export default function AnalyticsPage() {
                   : "-"}
               </div>
             </div>
+            <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>
+                Типи покупок (paid)
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>
+                {summaryPaidTypeEntries.length > 0
+                  ? summaryPaidTypeEntries
+                      .map(([type, count]) => `${type}: ${count}`)
+                      .join(", ")
+                  : "-"}
+              </div>
+            </div>
           </div>
         </s-card-section>
         <s-card-section>
@@ -330,12 +370,19 @@ export default function AnalyticsPage() {
                 strokeWidth="2"
               />
               {points.map((point, idx) => {
-                const typeEntries = Object.entries(point.breakdown.productTypes || {});
-                const typeLines = typeEntries.length
-                  ? `Типи:\n${typeEntries
+                const checkoutTypeEntries = Object.entries(point.breakdown.productTypes || {});
+                const checkoutTypeLines = checkoutTypeEntries.length
+                  ? `Типи (checkout):\n${checkoutTypeEntries
                       .map(([type, count]) => `${type}: ${count}`)
-                      .join("\n")}`
-                  : "Типи: -";
+                      .join("\\n")}`
+                  : "Типи (checkout): -";
+
+                const paidTypeEntries = Object.entries(point.breakdown.productTypesPaid || {});
+                const paidTypeLines = paidTypeEntries.length
+                  ? `Типи (paid):\n${paidTypeEntries
+                      .map(([type, count]) => `${type}: ${count}`)
+                      .join("\\n")}`
+                  : "Типи (paid): -";
 
                 return (
                   <g key={idx}>
@@ -347,7 +394,7 @@ export default function AnalyticsPage() {
                       style={{ cursor: "pointer" }}
                     >
                       <title>
-                        {`Перегляд сторінки: ${point.breakdown.page_view}\nДодав у кошик: ${point.breakdown.add_to_cart}\nКлік по кнопці: ${point.breakdown.button_click}\nCheckout (типи): ${point.breakdown.product_type_purchase}\n${typeLines}`}
+                        {`Перегляд стор?нки: ${point.breakdown.page_view}\nДодав у кошик: ${point.breakdown.add_to_cart}\nКл?к по кнопц?: ${point.breakdown.button_click}\nCheckout (типи): ${point.breakdown.product_type_purchase}\nPaid (типи): ${point.breakdown.product_type_paid}\n${checkoutTypeLines}\n${paidTypeLines}`}
                       </title>
                     </circle>
                     <text
