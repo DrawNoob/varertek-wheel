@@ -1,4 +1,4 @@
-{% # theme-check-disable ValidSchema %}
+﻿{% # theme-check-disable ValidSchema %}
 <link rel="stylesheet" href="{{ 'fortune-wheel.css' | asset_url }}">
 
 {% assign uid = block.id %}
@@ -50,26 +50,17 @@
       {% endif %}
 
       <div class="vt-wheel-layout">
-        <!-- ЛІВО: колесо -->
         <div class="vt-wheel-wrapper">
           <div class="vt-wheel-pointer"></div>
 
           <div class="vt-wheel-disc">
-            {%- comment -%} Порожні елементи, текст підставить JS з налаштувань апки {%- endcomment -%}
-            <span class="vt-wheel-label vt-wheel-label-1" data-segment-index="0"></span>
-            <span class="vt-wheel-label vt-wheel-label-2" data-segment-index="1"></span>
-            <span class="vt-wheel-label vt-wheel-label-3" data-segment-index="2"></span>
-            <span class="vt-wheel-label vt-wheel-label-4" data-segment-index="3"></span>
-            <span class="vt-wheel-label vt-wheel-label-5" data-segment-index="4"></span>
-            <span class="vt-wheel-label vt-wheel-label-6" data-segment-index="5"></span>
-
-            <div class="vt-wheel-center">?</div>
+            <div class="vt-wheel-labels" aria-hidden="true"></div>
+            <div class="vt-wheel-center">🎁</div>
           </div>
         </div>
 
-        <!-- ПРАВО: email + кнопка -->
         <div class="vt-wheel-side">
-          {%- comment -%} Блок з емейлом (видимий ДО спіну) {%- endcomment -%}
+          {%- comment -%} Блок з емейлом (опційний) {%- endcomment -%}
           <div class="vt-wheel-email-wrapper">
             <label for="vt-wheel-email-{{ uid }}" class="vt-wheel-email-label">
               {{ block.settings.email_label }}
@@ -82,7 +73,7 @@
             >
           </div>
 
-          {%- comment -%} Блок з промокодом (прихований ДО спіну) {%- endcomment -%}
+          {%- comment -%} Блок з промокодом {%- endcomment -%}
           <div class="vt-wheel-code-wrapper vt-wheel-code-wrapper--hidden">
             <label class="vt-wheel-code-label">Ваш промокод:</label>
             <div class="vt-wheel-code-row">
@@ -112,14 +103,14 @@
 </div>
 
 {%- comment -%}
-  Стікний тригер зліва по центру, показується, коли попап закритий
+  Маленький тригер, щоб відкрити колесо після закриття.
 {%- endcomment -%}
 <button
   type="button"
   class="vt-wheel-trigger vt-wheel-trigger--hidden vt-wheel-trigger-{{ uid }}"
   aria-label="Відкрити колесо фортуни"
 >
-  🎡
+  🎁
 </button>
 
 <script src="{{ 'fortune-wheel.js' | asset_url }}" defer></script>
@@ -132,7 +123,7 @@
   "settings": [
     {
       "type": "header",
-      "content": "Текст"
+      "content": "Тексти"
     },
     {
       "type": "text",
@@ -155,13 +146,13 @@
 
     {
       "type": "header",
-      "content": "Емейл"
+      "content": "Email"
     },
     {
       "type": "text",
       "id": "email_label",
-      "label": "Підпис для поля email",
-      "default": "Вкажіть свій email, щоб взяти участь:"
+      "label": "Підпис до поля email",
+      "default": "Вкажи свій email, щоб отримати подарунок:"
     },
     {
       "type": "text",
@@ -172,13 +163,13 @@
     {
       "type": "text",
       "id": "error_message",
-      "label": "Текст помилки при відсутності / повторі email",
+      "label": "Текст помилки при невалідному email",
       "default": "Введіть коректний email, щоб крутити колесо."
     },
     {
       "type": "text",
       "id": "success_message",
-      "label": "Повідомлення після успішного прокручування",
+      "label": "Повідомлення після успішного крутіння",
       "default": "Ви успішно прокрутили колесо!"
     },
 
@@ -207,7 +198,7 @@
     {
       "type": "color",
       "id": "button_bg",
-      "label": "Фон кнопки “Крутити”",
+      "label": "Фон кнопки «Крутити»",
       "default": "#10B981"
     },
     {

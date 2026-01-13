@@ -1,4 +1,4 @@
-.vt-wheel-overlay {
+﻿.vt-wheel-overlay {
     position: fixed;
     inset: 0;
     background: var(--overlay-bg, rgba(0, 0, 0, 0.65));
@@ -67,7 +67,7 @@
     margin-bottom: 16px;
   }
   
-  /* Нова горизонтальна сітка: колесо + права колонка */
+  /* РќРѕРІР° РіРѕСЂРёР·РѕРЅС‚Р°Р»СЊРЅР° СЃС–С‚РєР°: РєРѕР»РµСЃРѕ + РїСЂР°РІР° РєРѕР»РѕРЅРєР° */
   .vt-wheel-layout {
     display: flex;
     gap: 20px;
@@ -84,8 +84,23 @@
     align-items: center;
     justify-content: center;
     margin: 0 auto;
+    overflow: visible;
   }
-  
+
+  .vt-wheel-pointer {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 18px solid var(--pointer-color, #ffffff);
+    z-index: 3;
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.3));
+  }
+
   .vt-wheel-side {
     flex: 0 0 300px;
     text-align: left;
@@ -140,7 +155,7 @@
     color: #6ee7b7;
   }
   
-  /* Колесо */
+  /* РљРѕР»РµСЃРѕ */
   .vt-wheel-disc {
     width: 220px;
     height: 220px;
@@ -161,68 +176,18 @@
         var(--seg6, #f472b6) 300deg 360deg
       );
   }
+
+
+
+
+.vt-wheel-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
   
-  .vt-wheel-center {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background: rgba(17, 24, 39, 0.95);
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 24px;
-    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.45);
-  }
-  
-  .vt-wheel-pointer {
-    position: absolute;
-    top: -22px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 12px solid transparent;
-    border-right: 12px solid transparent;
-    border-bottom: none;
-    border-top: 20px solid #fbbf24;
-  }
-  
-  /* Кнопка крутити */
-  .vt-wheel-spin-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 22px;
-    border-radius: 999px;
-    border: none;
-    cursor: pointer;
-    background: var(--btn-bg, #10b981);
-    color: var(--btn-text, #ffffff);
-    font-size: 14px;
-    font-weight: 600;
-  }
-  
-  .vt-wheel-spin-btn:hover {
-    filter: brightness(1.05);
-  }
-  
-  /* Анімація */
-  .vt-wheel-disc--spinning {
-    animation: vt-wheel-spin 1.2s ease-out forwards;
-  }
-  
-  @keyframes vt-wheel-spin {
-    0% {
-      transform: rotate(0deg);
-    }
-    100% {
-      transform: rotate(720deg);
-    }
-  }
-  
-  /* Стікний тригер зліва */
+  /* РЎС‚С–РєРЅРёР№ С‚СЂРёРіРµСЂ Р·Р»С–РІР° */
   .vt-wheel-trigger {
     position: fixed;
     left: 12px;
@@ -254,7 +219,7 @@
     transform: translateY(-50%) translateX(-8px);
   }
   
-  /* Мобіла */
+  /* РњРѕР±С–Р»Р° */
   @media (max-width: 640px) {
     .vt-wheel-modal {
       max-width: 100%;
@@ -274,8 +239,13 @@
       width: 190px;
       height: 190px;
     }
-  }
-  /* Текстові лейбли на секторах */
+
+
+
+
+
+}
+  /* РўРµРєСЃС‚РѕРІС– Р»РµР№Р±Р»Рё РЅР° СЃРµРєС‚РѕСЂР°С… */
   .vt-wheel-label {
     position: absolute;
     left: 50%;
@@ -283,32 +253,13 @@
     transform-origin: center center;
     font-size: 14px;
     font-weight: 700;
-    color: #111827; /* якщо фон темний — можеш зробити #FFFFFF */
+    color: #111827; /* СЏРєС‰Рѕ С„РѕРЅ С‚РµРјРЅРёР№ вЂ” РјРѕР¶РµС€ Р·СЂРѕР±РёС‚Рё #FFFFFF */
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
     white-space: nowrap;
   }
 
-  /* центри секторів (кожен сектор = 60°, беремо середину) */
-  .vt-wheel-label-1 {
-    transform: translate(-50%, -50%) rotate(30deg) translate(0, -72px) rotate(-30deg);
-  }
-  .vt-wheel-label-2 {
-    transform: translate(-50%, -50%) rotate(90deg) translate(0, -72px) rotate(-90deg);
-  }
-  .vt-wheel-label-3 {
-    transform: translate(-50%, -50%) rotate(150deg) translate(0, -72px) rotate(-150deg);
-  }
-  .vt-wheel-label-4 {
-    transform: translate(-50%, -50%) rotate(210deg) translate(0, -72px) rotate(-210deg);
-  }
-  .vt-wheel-label-5 {
-    transform: translate(-50%, -50%) rotate(270deg) translate(0, -72px) rotate(-270deg);
-  }
-  .vt-wheel-label-6 {
-    transform: translate(-50%, -50%) rotate(330deg) translate(0, -72px) rotate(-330deg);
-  }
-
-  /* можна зробити трохи менший текст на мобілі */
+  /* С†РµРЅС‚СЂРё СЃРµРєС‚РѕСЂС–РІ (РєРѕР¶РµРЅ СЃРµРєС‚РѕСЂ = 60В°, Р±РµСЂРµРјРѕ СЃРµСЂРµРґРёРЅСѓ) */
+  /* РјРѕР¶РЅР° Р·СЂРѕР±РёС‚Рё С‚СЂРѕС…Рё РјРµРЅС€РёР№ С‚РµРєСЃС‚ РЅР° РјРѕР±С–Р»С– */
   @media (max-width: 640px) {
     .vt-wheel-label {
       font-size: 12px;
@@ -347,3 +298,12 @@
     margin-top: 4px;
   }
   
+
+
+
+
+
+
+
+
+

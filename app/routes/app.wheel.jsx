@@ -65,6 +65,7 @@ export async function action({ request }) {
   }
 
   const buildSegment = (i) => ({
+    enabled: formData.get(`s${i}_enabled`) === "on",
     label: formData.get(`s${i}_label`) || "",
     chance: Number(formData.get(`s${i}_chance`) || 0),
     discountType: formData.get(`s${i}_dtype`) || "PERCENT",
@@ -137,7 +138,16 @@ export default function WheelPage() {
                       borderRadius: "12px",
                       padding: "14px",
                     }}
-                  >
+                    >
+                    <label style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
+                      <input
+                        type="checkbox"
+                        name={`s${i}_enabled`}
+                        defaultChecked={seg.enabled !== false}
+                        style={{ marginRight: 6 }}
+                      />
+                      Включено
+                    </label>
                     <h3
                       style={{
                         fontSize: "16px",
@@ -283,10 +293,8 @@ export default function WheelPage() {
         </s-card-section>
       </s-section>
 
-      <s-section>
-        <s-card-section>
-          <CountdownAnswersPage rows={rows} />
-        </s-card-section>
+      <s-section heading="Відповіді та знижки">
+        <CountdownAnswersPage rows={rows} />
       </s-section>
     </s-page>
   );
