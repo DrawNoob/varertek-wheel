@@ -2,6 +2,9 @@
 (function () {
   const PROXY_URL = "/apps/vadertek-timer";
   const EMAIL_KEY = "vt_email";
+  const CART_CACHE_TTL = 15000;
+  let cachedPurchaseTypes = null;
+  let lastCartFetchAt = 0;
 
   function getStoredEmail() {
     try {
@@ -58,6 +61,50 @@
     }).catch(() => {});
   }
 
+  function getPurchaseTypesFromItems(items) {
+    const safeItems = Array.isArray(items) ? items : [];
+    const typeSet = new Set();
+
+    safeItems.forEach((item) => {
+      const type = String(item.product_type || "").trim().toLowerCase();
+      if (type) typeSet.add(type);
+    });
+
+    return Array.from(typeSet);
+  }
+
+  async function fetchCartSummary() {
+    const now = Date.now();
+    if (now - lastCartFetchAt < CART_CACHE_TTL && cachedPurchaseTypes !== null) {
+      return cachedPurchaseTypes;
+    }
+    lastCartFetchAt = now;
+
+    try {
+      const res = await fetch("/cart.js", {
+        method: "GET",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+        keepalive: true,
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const types = getPurchaseTypesFromItems(data.items);
+      cachedPurchaseTypes = types;
+      return types;
+    } catch {
+      // ignore
+    }
+    return null;
+  }
+
+  async function trackCheckoutIntent() {
+    const types = await fetchCartSummary();
+    if (types && types.length > 0) {
+      sendEvent("product_type_purchase", { eventData: { types } });
+    }
+  }
+
   function trackPageView() {
     sendEvent("page_view", { eventData: { referrer: document.referrer || null } });
   }
@@ -81,6 +128,7 @@
       lastAddAt = now;
       const handle = parseProductHandle(window.location.href);
       sendEvent("add_to_cart", { productHandle: handle });
+      fetchCartSummary();
     }
 
     function isAddToCart(button) {
@@ -106,6 +154,25 @@
     });
   }
 
+  function isCheckoutTrigger(element) {
+    if (!element) return false;
+    if (element.closest('a[href*="/checkout"]')) return true;
+    const button = element.closest("button, input[type=\"submit\"]");
+    if (button) {
+      const name = (button.name || "").toLowerCase();
+      const value = (button.value || "").toLowerCase();
+      if (name.includes("checkout") || value.includes("checkout")) return true;
+      const aria = (button.getAttribute("aria-label") || "").toLowerCase();
+      if (aria.includes("checkout")) return true;
+      const form = button.closest("form");
+      if (form && form.action && form.action.includes("/checkout")) return true;
+      if (form && form.action && form.action.includes("/cart") && name === "checkout") {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function trackButtonClicks() {
     document.addEventListener("click", (event) => {
       const btn = event.target.closest(
@@ -116,10 +183,58 @@
         return;
       }
       if (btn.name === "add") return;
+      if (isCheckoutTrigger(btn)) return;
 
       const label =
         (btn.textContent || btn.value || "").trim() || "button";
       sendEvent("button_click", { eventData: { label } });
+    });
+  }
+
+  function trackCheckoutClicks() {
+    let lastCheckoutAt = 0;
+
+    function fireCheckout() {
+      const now = Date.now();
+      if (now - lastCheckoutAt < 1500) return;
+      lastCheckoutAt = now;
+      if (cachedPurchaseTypes && cachedPurchaseTypes.length > 0) {
+        sendEvent("product_type_purchase", {
+          eventData: { types: cachedPurchaseTypes },
+        });
+        fetchCartSummary();
+      } else {
+        trackCheckoutIntent();
+      }
+    }
+
+    document.addEventListener("click", (event) => {
+      const link = event.target.closest('a[href*="/checkout"]');
+      if (link) {
+        fireCheckout();
+        return;
+      }
+
+      if (isCheckoutTrigger(event.target)) {
+        fireCheckout();
+      }
+    });
+
+    document.addEventListener("submit", (event) => {
+      const form = event.target;
+      if (!form || !form.action) return;
+      if (form.action.includes("/checkout")) {
+        fireCheckout();
+        return;
+      }
+      if (form.action.includes("/cart")) {
+        const submitter = event.submitter;
+        const name = (submitter?.name || "").toLowerCase();
+        const value = (submitter?.value || "").toLowerCase();
+        if (name.includes("checkout") || value.includes("checkout")) {
+          fireCheckout();
+        }
+      }
     });
   }
 
@@ -132,6 +247,8 @@
     trackProductClicks();
     trackAddToCart();
     trackButtonClicks();
+    trackCheckoutClicks();
+    fetchCartSummary();
   });
 
   window.addEventListener("pageshow", (event) => {

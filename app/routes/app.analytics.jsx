@@ -64,6 +64,8 @@ export const loader = async ({ request }) => {
         product_click: [],
         add_to_cart: [],
         button_click: [],
+        product_type_purchase: [],
+        product_type_paid: [],
       };
     }
 
@@ -73,6 +75,12 @@ export const loader = async ({ request }) => {
     let value = null;
     if (event.eventType === "product_click") {
       value = event.productHandle || event.url;
+    } else if (
+      event.eventType === "product_type_purchase" ||
+      event.eventType === "product_type_paid"
+    ) {
+      const types = Array.isArray(event.eventData?.types) ? event.eventData.types : [];
+      value = types.length ? types.join(", ") : event.url;
     } else if (event.eventType === "button_click") {
       value = event.eventData?.label || event.url;
     } else {
@@ -93,12 +101,21 @@ export const loader = async ({ request }) => {
     where: {
       shop,
       createdAt: { gte: startDate },
-      eventType: { in: ["page_view", "add_to_cart", "button_click"] },
+      eventType: {
+        in: [
+          "page_view",
+          "add_to_cart",
+          "button_click",
+          "product_type_purchase",
+          "product_type_paid",
+        ],
+      },
     },
     select: {
       createdAt: true,
       eventType: true,
       email: true,
+      eventData: true,
     },
     orderBy: { createdAt: "desc" },
     take: MAX_EVENTS_FOR_SUMMARY,
@@ -108,14 +125,22 @@ export const loader = async ({ request }) => {
     page_view: 0,
     add_to_cart: 0,
     button_click: 0,
+    product_type_purchase: 0,
+    product_type_paid: 0,
   };
   const totalsByDay = Array(7).fill(0);
   const dailyByType = Array.from({ length: 7 }, () => ({
     page_view: 0,
     add_to_cart: 0,
     button_click: 0,
+    product_type_purchase: 0,
+    product_type_paid: 0,
+    productTypes: {},
+    productTypesPaid: {},
   }));
   const uniqueUsers = new Set();
+  const summaryTypeCounts = {};
+  const summaryTypeCountsPaid = {};
 
   summaryEvents.forEach((event) => {
     if (totalsByType[event.eventType] !== undefined) {
@@ -128,6 +153,28 @@ export const loader = async ({ request }) => {
       totalsByDay[index] += 1;
       if (dailyByType[index] && dailyByType[index][event.eventType] !== undefined) {
         dailyByType[index][event.eventType] += 1;
+      }
+
+      if (event.eventType === "product_type_purchase") {
+        const types = Array.isArray(event.eventData?.types) ? event.eventData.types : [];
+        types.forEach((type) => {
+          const key = String(type).trim().toLowerCase();
+          if (!key) return;
+          summaryTypeCounts[key] = (summaryTypeCounts[key] || 0) + 1;
+          dailyByType[index].productTypes[key] =
+            (dailyByType[index].productTypes[key] || 0) + 1;
+        });
+      }
+
+      if (event.eventType === "product_type_paid") {
+        const types = Array.isArray(event.eventData?.types) ? event.eventData.types : [];
+        types.forEach((type) => {
+          const key = String(type).trim().toLowerCase();
+          if (!key) return;
+          summaryTypeCountsPaid[key] = (summaryTypeCountsPaid[key] || 0) + 1;
+          dailyByType[index].productTypesPaid[key] =
+            (dailyByType[index].productTypesPaid[key] || 0) + 1;
+        });
       }
     }
 
@@ -150,6 +197,8 @@ export const loader = async ({ request }) => {
       totalEvents: summaryEvents.length,
       totalsByType,
       uniqueUsers: uniqueUsers.size,
+      typeCounts: summaryTypeCounts,
+      typeCountsPaid: summaryTypeCountsPaid,
     },
     chart: {
       labels,
@@ -169,6 +218,10 @@ function formatEventType(type) {
       return "Додав у кошик";
     case "button_click":
       return "Клік по кнопці";
+    case "product_type_purchase":
+      return "Checkout (типи)";
+    case "product_type_paid":
+      return "Оплачені покупки (типи)";
     default:
       return type;
   }
@@ -191,6 +244,15 @@ export default function AnalyticsPage() {
     });
     return acc;
   }, {});
+
+  const eventOrder = [
+    "page_view",
+    "product_click",
+    "add_to_cart",
+    "button_click",
+    "product_type_purchase",
+    "product_type_paid",
+  ];
 
   const tooltipFor = (email, eventType) => {
     const items = tooltipData?.[email]?.[eventType] || [];
@@ -222,12 +284,21 @@ export default function AnalyticsPage() {
       page_view: 0,
       add_to_cart: 0,
       button_click: 0,
+      product_type_purchase: 0,
+      product_type_paid: 0,
+      productTypes: {},
+      productTypesPaid: {},
     };
     const x = padding + (idx / (chart.totalsByDay.length - 1)) * (width - padding * 2);
     const y = height - padding - (value / maxValue) * (height - padding * 2);
     return { x, y, value, label: chart.labels[idx], breakdown };
   });
   const linePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
+
+  const summaryTypeEntries = Object.entries(summary.typeCounts || {})
+    .sort((a, b) => b[1] - a[1]);
+  const summaryPaidTypeEntries = Object.entries(summary.typeCountsPaid || {})
+    .sort((a, b) => b[1] - a[1]);
 
   return (
     <s-page heading="Analytics">
@@ -239,7 +310,7 @@ export default function AnalyticsPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
               gap: "12px",
             }}
           >
@@ -263,6 +334,30 @@ export default function AnalyticsPage() {
               <div style={{ fontSize: 12, color: "#6b7280" }}>Користувачі</div>
               <div style={{ fontSize: 20, fontWeight: 600 }}>{summary.uniqueUsers}</div>
             </div>
+            <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>
+                Типи покупок (checkout)
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>
+                {summaryTypeEntries.length > 0
+                  ? summaryTypeEntries
+                      .map(([type, count]) => `${type}: ${count}`)
+                      .join(", ")
+                  : "-"}
+              </div>
+            </div>
+            <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>
+                Типи покупок (paid)
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>
+                {summaryPaidTypeEntries.length > 0
+                  ? summaryPaidTypeEntries
+                      .map(([type, count]) => `${type}: ${count}`)
+                      .join(", ")
+                  : "-"}
+              </div>
+            </div>
           </div>
         </s-card-section>
         <s-card-section>
@@ -274,30 +369,46 @@ export default function AnalyticsPage() {
                 stroke="#2563eb"
                 strokeWidth="2"
               />
-              {points.map((point, idx) => (
-                <g key={idx}>
-                  <circle
-                    cx={point.x}
-                    cy={point.y}
-                    r="3"
-                    fill="#2563eb"
-                    style={{ cursor: "pointer" }}
-                  >
-                    <title>
-                      {`Перегляд сторінки: ${point.breakdown.page_view}\nКлік по кнопці: ${point.breakdown.button_click}\nДодав у кошик: ${point.breakdown.add_to_cart}`}
-                    </title>
-                  </circle>
-                  <text
-                    x={point.x}
-                    y={height - padding + 24}
-                    textAnchor="middle"
-                    fontSize="11"
-                    fill="#6b7280"
-                  >
-                    {formatDateLabel(point.label)}
-                  </text>
-                </g>
-              ))}
+              {points.map((point, idx) => {
+                const checkoutTypeEntries = Object.entries(point.breakdown.productTypes || {});
+                const checkoutTypeLines = checkoutTypeEntries.length
+                  ? `Типи (checkout):\n${checkoutTypeEntries
+                      .map(([type, count]) => `${type}: ${count}`)
+                      .join("\\n")}`
+                  : "Типи (checkout): -";
+
+                const paidTypeEntries = Object.entries(point.breakdown.productTypesPaid || {});
+                const paidTypeLines = paidTypeEntries.length
+                  ? `Типи (paid):\n${paidTypeEntries
+                      .map(([type, count]) => `${type}: ${count}`)
+                      .join("\\n")}`
+                  : "Типи (paid): -";
+
+                return (
+                  <g key={idx}>
+                    <circle
+                      cx={point.x}
+                      cy={point.y}
+                      r="3"
+                      fill="#2563eb"
+                      style={{ cursor: "pointer" }}
+                    >
+                      <title>
+                        {`Перегляд стор?нки: ${point.breakdown.page_view}\nДодав у кошик: ${point.breakdown.add_to_cart}\nКл?к по кнопц?: ${point.breakdown.button_click}\nCheckout (типи): ${point.breakdown.product_type_purchase}\nPaid (типи): ${point.breakdown.product_type_paid}\n${checkoutTypeLines}\n${paidTypeLines}`}
+                      </title>
+                    </circle>
+                    <text
+                      x={point.x}
+                      y={height - padding + 24}
+                      textAnchor="middle"
+                      fontSize="11"
+                      fill="#6b7280"
+                    >
+                      {formatDateLabel(point.label)}
+                    </text>
+                  </g>
+                );
+              })}
               <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#e5e7eb" />
               <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#e5e7eb" />
             </svg>
@@ -333,13 +444,20 @@ export default function AnalyticsPage() {
                     </td>
                     <td style={{ padding: 8 }}>
                       {(countsByEmail[row.email] || []).length > 0
-                        ? (countsByEmail[row.email] || []).map((entry) => (
-                            <div key={entry.type}>
-                              <span title={tooltipFor(row.email, entry.type)}>
-                                {formatEventType(entry.type)}: {entry.count}
-                              </span>
-                            </div>
-                          ))
+                        ? [...(countsByEmail[row.email] || [])]
+                            .sort((a, b) => {
+                              return (
+                                eventOrder.indexOf(a.type) -
+                                eventOrder.indexOf(b.type)
+                              );
+                            })
+                            .map((entry) => (
+                              <div key={entry.type}>
+                                <span title={tooltipFor(row.email, entry.type)}>
+                                  {formatEventType(entry.type)}: {entry.count}
+                                </span>
+                              </div>
+                            ))
                         : "-"}
                     </td>
                   </tr>

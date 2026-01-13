@@ -1,6 +1,18 @@
 ﻿// app/data/changelog.js
 
-export const changelog = [  {
+export const changelog = [
+  {
+    date: "2026-01-13",
+    title: "Оновлення аналітики та колеса",
+    items: [
+      "Додано webhook orders/paid і запис події product_type_paid після успішної оплати",
+      "Показано \"Типи покупок (paid)\" у зведенні та tooltip графіка",
+      "Автоматична реєстрація webhooks після авторизації",
+      "Виправлено тексти та повідомлення колеса (email, помилки, копіювання коду)",
+      "Відновлено стрілку та підписи секторів колеса"
+    ],
+  },
+  {
     date: "2026-01-12",
     title: "Analytics + tracking update",
     items: [

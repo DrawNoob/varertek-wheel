@@ -1,11 +1,20 @@
-// extensions/universe/assets/fortune-wheel.js
+﻿// extensions/universe/assets/fortune-wheel.js
 (function () {
+  if (!window.__VT_WHEEL_EMBED_ENABLED__) {
+    return;
+  }
   const PROXY_URL = "/apps/vadertek-timer";
-  const SEGMENTS_COUNT = 6;
-  const SEGMENT_ANGLE = 360 / SEGMENTS_COUNT;
+  const DEFAULT_COLORS = [
+    "#f87171",
+    "#fbbf24",
+    "#34d399",
+    "#60a5fa",
+    "#a78bfa",
+    "#f472b6",
+  ];
 
   // -----------------------------
-  // 1) Тягнемо конфіг колеса
+  //
   // -----------------------------
   async function loadWheelConfig() {
     try {
@@ -20,15 +29,59 @@
       }
 
       const data = await res.json();
-      return Array.isArray(data.wheelSegments) ? data.wheelSegments : null;
+      const segments = Array.isArray(data.wheelSegments) ? data.wheelSegments : null;
+      if (!segments || segments.length === 0) return null;
+      return segments;
     } catch (e) {
       console.error("Wheel config load error", e);
       return null;
     }
   }
 
+  function buildGradient(disc, count) {
+    const style = getComputedStyle(disc);
+    const colors = [];
+    for (let i = 1; i <= 6; i++) {
+      const value = style.getPropertyValue(`--seg${i}`).trim();
+      if (value) colors.push(value);
+    }
+    const palette = colors.length ? colors : DEFAULT_COLORS;
+    const angle = 360 / count;
+    const stops = [];
+
+    for (let i = 0; i < count; i++) {
+      const start = i * angle;
+      const end = (i + 1) * angle;
+      const color = palette[i % palette.length];
+      stops.push(`${color} ${start}deg ${end}deg`);
+    }
+
+    disc.style.background = `conic-gradient(${stops.join(", ")})`;
+  }
+
+  function renderLabels(overlay, segments) {
+    const disc = overlay.querySelector(".vt-wheel-disc");
+    const labelsRoot = overlay.querySelector(".vt-wheel-labels");
+    if (!disc || !labelsRoot) return;
+
+    labelsRoot.innerHTML = "";
+    const count = segments.length;
+    const angle = 360 / count;
+
+    segments.forEach((seg, idx) => {
+      const label = document.createElement("span");
+      label.className = "vt-wheel-label";
+      label.textContent = seg && seg.label ? seg.label : "";
+      const angleDeg = idx * angle + angle / 2;
+      label.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg) translate(0, -72px) rotate(-${angleDeg}deg)`;
+      labelsRoot.appendChild(label);
+    });
+
+    buildGradient(disc, count);
+  }
+
   // -----------------------------
-  // 2) Ініціалізація попапів
+  //
   // -----------------------------
   function initWheelOverlays(segments) {
     const overlays = document.querySelectorAll("[data-vt-wheel-overlay]");
@@ -43,7 +96,7 @@
       const emailInput = overlay.querySelector(".vt-wheel-email-input");
       const emailWrapper = overlay.querySelector(".vt-wheel-email-wrapper");
   
-      // НОВІ елементи для коду
+      //
       const codeWrapper = overlay.querySelector(".vt-wheel-code-wrapper");
       const codeInput = overlay.querySelector(".vt-wheel-code-input");
       const copyBtn = overlay.querySelector(".vt-wheel-copy-btn");
@@ -55,21 +108,15 @@
       const attrEmail = overlay.getAttribute("data-email") || "";
       const errorMessage =
         overlay.getAttribute("data-error-message") ||
-        "Введіть коректний email, щоб крутити колесо.";
+        "Введ\u0456ть коректний email, щоб крутити колесо.";
       const usedMessage = "Цей email вже використовував колесо.";
       const defaultSuccess =
         overlay.getAttribute("data-success-message") ||
-        "Ви успішно прокрутили колесо!";
+        "Ви усп\u0456шно прокрутили колесо!";
   
 
-      // Підставити лейбли секторів
-      if (segments && segments.length === SEGMENTS_COUNT) {
-        const labelEls = overlay.querySelectorAll(".vt-wheel-label");
-        labelEls.forEach(function (el) {
-          const index = Number(el.getAttribute("data-segment-index") || 0);
-          const seg = segments[index];
-          el.textContent = seg && seg.label ? seg.label : "";
-        });
+      if (Array.isArray(segments) && segments.length > 0) {
+        renderLabels(overlay, segments);
       }
 
       function showError(msg) {
@@ -103,7 +150,7 @@
         }
       }
 
-      // Відкриття/закриття попапа
+      //
       function openOverlay() {
         overlay.classList.remove("vt-wheel-overlay--hidden");
         if (trigger) {
@@ -135,16 +182,20 @@
       }
 
       // -----------------------------
-      // 3) Логіка "Крутити колесо"
+      //
       // -----------------------------
       let currentRotation = 0;
 
       async function spinWheel() {
         if (!disc || !spinBtn) return;
+        if (!Array.isArray(segments) || segments.length === 0) {
+          showError("Колесо не налаштоване.");
+          return;
+        }
 
         const email = getEmail();
 
-        // 1) Валідація email
+        //
         if (!isValidEmail(email)) {
           showSuccess("");
           showError(errorMessage);
@@ -154,7 +205,7 @@
 
         const deviceType = window.innerWidth < 768 ? "Mobile" : "Desktop";
 
-        // 2) Запит на бекенд → random сегмент по шансах
+        //
         spinBtn.disabled = true;
         showError("");
         showSuccess("");
@@ -176,22 +227,23 @@
             const msg =
               data?.message === "Цей email вже використовував колесо."
                 ? usedMessage
-                : data?.message || "Сталася помилка, спробуйте ще раз.";
+                : data?.message || "Сталася помилка, спробуйте ще раз."
             showError(msg);
             spinBtn.disabled = false;
             return;
           }
 
           const { index, label, code } = data.result;
+          const segmentAngle = 360 / segments.length;
 
-          // 3) Текст успіху (БЕЗ показу коду)
+          //
           showError("");
-          showSuccess(`${defaultSuccess} Ваш виграш: ${label}. Код дійсний 3 доби.`);
+          showSuccess(`${defaultSuccess} Ваш виграш: ${label}. Код д\u0456йсний 3 доби.`);
           if (centerEl) {
-            centerEl.textContent = "✓";
+            centerEl.textContent = "\uD83C\uDF81";
           }
 
-          // 3.1 Показуємо блок з кодом замість поля email
+          //
           if (emailWrapper) {
             emailWrapper.style.display = "none";
           }
@@ -206,24 +258,24 @@
           }
 
 
-          // 4) Обертання до потрібного сектору
-          //    0-й сектор — зверху; якщо треба змістити, змінюй baseOffset.
-          const baseOffset = -SEGMENT_ANGLE / 2; // щоб pointer бив приблизно в центр сектору
-          const extraTurns = 3 + Math.floor(Math.random() * 3); // 3–5 повних обертів
+          //
+          //
+          const baseOffset = -segmentAngle / 2; 
+          const extraTurns = 3 + Math.floor(Math.random() * 3);
           const targetAngle =
-            extraTurns * 360 + index * SEGMENT_ANGLE + baseOffset;
+            extraTurns * 360 + index * segmentAngle + baseOffset;
 
           currentRotation += targetAngle;
 
-          // відключаємо стару CSS-анімацію, якщо є
+          //
           disc.style.animation = "none";
 
-          // плавний transition
+          //
           disc.style.transition =
             "transform 4s cubic-bezier(0.23, 1, 0.32, 1)";
           disc.style.transform = `rotate(${currentRotation}deg)`;
 
-          // розблокувати кнопку після завершення анімації
+          //
           setTimeout(function () {
             spinBtn.disabled = false;
           }, 4200);
@@ -234,7 +286,7 @@
         }
       }
 
-      // Кнопка "Скопіювати"
+      //
       if (copyBtn && codeInput) {
         copyBtn.addEventListener("click", async function () {
           if (!codeInput.value) return;
@@ -242,7 +294,7 @@
           try {
             await navigator.clipboard.writeText(codeInput.value);
             if (codeCopiedEl) {
-              codeCopiedEl.textContent = "Скопійовано ✅";
+              codeCopiedEl.textContent = "Скопійовано ✓";
             }
           } catch (e) {
             console.error("Clipboard error", e);
@@ -260,7 +312,7 @@
   }
 
   // -----------------------------
-  // 4) Старт
+  //
   // -----------------------------
   async function bootstrap() {
     const segments = await loadWheelConfig();
@@ -273,3 +325,19 @@
     bootstrap();
   }
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

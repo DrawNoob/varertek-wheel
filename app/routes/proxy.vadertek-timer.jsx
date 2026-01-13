@@ -30,7 +30,7 @@ export async function loader({ request }) {
       endDate = countdownRecord?.endDate ?? null;
 
       if (wheel) {
-        wheelSegments = [
+        const rawSegments = [
           wheel.segment1,
           wheel.segment2,
           wheel.segment3,
@@ -38,6 +38,7 @@ export async function loader({ request }) {
           wheel.segment5,
           wheel.segment6,
         ];
+        wheelSegments = rawSegments.filter((segment) => segment?.enabled !== false);
       }
     } catch (e) {
       console.error("APP PROXY LOADER DB error", e);
@@ -164,7 +165,14 @@ export async function action({ request }) {
       wheel.segment4,
       wheel.segment5,
       wheel.segment6,
-    ];
+    ].filter((segment) => segment?.enabled !== false);
+
+    if (!segments.length) {
+      return json({
+        ok: false,
+        message: "Нема активних секторів для колеса.",
+      });
+    }
 
     // Розрахунок рандому по шансам
     const total = segments.reduce((sum, s) => sum + (s.chance || 0), 0);
