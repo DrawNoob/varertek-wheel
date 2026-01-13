@@ -1,5 +1,8 @@
 // extensions/universe/assets/fortune-wheel.js
 (function () {
+  if (!window.__VT_WHEEL_EMBED_ENABLED__) {
+    return;
+  }
   const PROXY_URL = "/apps/vadertek-timer";
   const SEGMENTS_COUNT = 6;
   const SEGMENT_ANGLE = 360 / SEGMENTS_COUNT;
