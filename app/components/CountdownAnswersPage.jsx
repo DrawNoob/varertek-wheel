@@ -1,9 +1,8 @@
-// app/components/CountdownAnswersPage.jsx
-import { Form } from "react-router";
+﻿import { Form } from "react-router";
 
 export function CountdownAnswersPage({ rows }) {
   return (
-    <s-page heading="Відповіді на countdown (Так / Ні)">
+    <s-page heading="Відповіді та знижки">
       <s-section>
         <s-card-section>
           <strong>Всього записів: {rows.length}</strong>
@@ -25,21 +24,19 @@ export function CountdownAnswersPage({ rows }) {
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} style={{ borderTop: "1px solid #eee" }}>
-                    <td style={{ padding: 8 }}>{r.email || "—"}</td>
+                    <td style={{ padding: 8 }}>{r.email || "-"}</td>
                     <td style={{ padding: 8 }}>
                       {r.answer === "yes"
-                        ? "ТАК"
+                        ? "Так"
                         : r.answer === "no"
-                        ? "НІ"
-                        : r.answer || "—"}
+                        ? "Ні"
+                        : r.answer || "-"}
                     </td>
-                    <td style={{ padding: 8 }}>
-                      {r.discountCode || "—"}
-                    </td>
+                    <td style={{ padding: 8 }}>{r.discountCode || "-"}</td>
                     <td style={{ padding: 8 }}>
                       {new Date(r.createdAt).toLocaleString()}
                     </td>
-                    <td style={{ padding: 8 }}>{r.deviceType || "—"}</td>
+                    <td style={{ padding: 8 }}>{r.deviceType || "-"}</td>
                     <td style={{ padding: 8 }}>
                       <Form method="post">
                         <input type="hidden" name="intent" value="delete" />
@@ -66,7 +63,7 @@ export function CountdownAnswersPage({ rows }) {
                 {rows.length === 0 && (
                   <tr>
                     <td colSpan={6} style={{ padding: 12, color: "#666" }}>
-                      Поки порожньо.
+                      Поки нема даних.
                     </td>
                   </tr>
                 )}
