@@ -94,6 +94,7 @@ export async function action({ request }) {
   }
 
   const intent = body.intent || null;
+  const prisma = await getTenantPrisma(shop);
   // -------------------------------------------------------------------
   // 0) Track analytics events (page views, product clicks, add to cart)
   // -------------------------------------------------------------------
@@ -126,7 +127,6 @@ export async function action({ request }) {
 
     return json({ ok: true });
   }
-  const prisma = await getTenantPrisma(shop);
 
   // -------------------------------------------------------------------
   // 1️⃣ НОВИЙ INTENT → КОЛЕСО ФОРТУНИ (створення знижки)
