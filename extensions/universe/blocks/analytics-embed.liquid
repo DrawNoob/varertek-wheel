@@ -1,5 +1,42 @@
 {% # theme-check-disable ValidSchema %}
 <script src="{{ 'vt-analytics.js' | asset_url }}" defer></script>
+{% if customer and customer.email %}
+<script>
+  (function () {
+    function sha256Hex(input) {
+      var data = new TextEncoder().encode(input.trim().toLowerCase());
+      return crypto.subtle.digest("SHA-256", data).then(function (hash) {
+        return Array.from(new Uint8Array(hash))
+          .map(function (b) {
+            return b.toString(16).padStart(2, "0");
+          })
+          .join("");
+      });
+    }
+
+    function setWhenReady(emailHash) {
+      var tries = 0;
+      function attempt() {
+        if (window.vtAnalytics && typeof window.vtAnalytics.setEmail === "function") {
+          window.vtAnalytics.setEmail(emailHash);
+          return;
+        }
+        if (tries < 20) {
+          tries += 1;
+          setTimeout(attempt, 100);
+        }
+      }
+      attempt();
+    }
+
+    var email = "{{ customer.email | escape }}";
+    if (!email) return;
+    sha256Hex(email)
+      .then(setWhenReady)
+      .catch(function () {});
+  })();
+</script>
+{% endif %}
 
 {% schema %}
 {
