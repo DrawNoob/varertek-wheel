@@ -228,6 +228,12 @@ function formatEventType(type) {
   }
 }
 
+function displayEmail(email) {
+  if (!email || email === "non-logged-in") return "non-logged-in";
+  if (email.length <= 12) return email;
+  return `hash:${email.slice(0, 8)}`;
+}
+
 function formatDateLabel(isoDate) {
   const parts = String(isoDate).split("-");
   if (parts.length !== 3) return isoDate;
@@ -436,7 +442,7 @@ export default function AnalyticsPage() {
               <tbody>
                 {users.map((row) => (
                   <tr key={row.email} style={{ borderTop: "1px solid #eee" }}>
-                    <td style={{ padding: 8 }}>{row.email}</td>
+                    <td style={{ padding: 8 }}>{displayEmail(row.email)}</td>
                     <td style={{ padding: 8 }}>{row._count?._all || 0}</td>
                     <td style={{ padding: 8 }}>
                       {row._max?.createdAt
