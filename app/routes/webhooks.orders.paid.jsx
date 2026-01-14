@@ -1,6 +1,6 @@
 import { authenticate } from "../shopify.server";
 import shopify from "../shopify.server";
-import { prisma } from "../db.server";
+import { getTenantPrisma } from "../tenant-db.server";
 
 function uniq(items) {
   return Array.from(new Set(items));
@@ -84,6 +84,7 @@ export const action = async ({ request }) => {
   const url = payload.order_status_url || `https://${shop}/admin/orders/${orderId}`;
 
   try {
+    const prisma = await getTenantPrisma(shop);
     await prisma.userEvent.create({
       data: {
         shop,

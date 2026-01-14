@@ -1,7 +1,7 @@
 ﻿import { useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
-import { prisma } from "../db.server";
+import { getTenantPrisma } from "../tenant-db.server";
 
 const MAX_TOOLTIP_ITEMS = 20;
 const MAX_EVENTS_FOR_TOOLTIPS = 5000;
@@ -17,6 +17,7 @@ function startOfDay(date) {
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
+  const prisma = await getTenantPrisma(shop);
 
   const users = await prisma.userEvent.groupBy({
     by: ["email"],
@@ -394,7 +395,7 @@ export default function AnalyticsPage() {
                       style={{ cursor: "pointer" }}
                     >
                       <title>
-                        {`Перегляд стор?нки: ${point.breakdown.page_view}\nДодав у кошик: ${point.breakdown.add_to_cart}\nКл?к по кнопц?: ${point.breakdown.button_click}\nCheckout (типи): ${point.breakdown.product_type_purchase}\nPaid (типи): ${point.breakdown.product_type_paid}\n${checkoutTypeLines}\n${paidTypeLines}`}
+                        {`Перегляд сторінки: ${point.breakdown.page_view}\nДодав у кошик: ${point.breakdown.add_to_cart}\nКлік по кнопці: ${point.breakdown.button_click}\nCheckout (типи): ${point.breakdown.product_type_purchase}\nPaid (типи): ${point.breakdown.product_type_paid}\n${checkoutTypeLines}\n${paidTypeLines}`}
                       </title>
                     </circle>
                     <text

@@ -6,12 +6,13 @@
 } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
-import { prisma } from "../db.server";
+import { getTenantPrisma } from "../tenant-db.server";
 import { CountdownAnswersPage } from "../components/CountdownAnswersPage";
 
 export async function loader({ request }) {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
+  const prisma = await getTenantPrisma(shop);
 
   let wheelSetting = null;
   let rows = [];
@@ -22,6 +23,7 @@ export async function loader({ request }) {
         where: { shop },
       }),
       prisma.countdownAnswer.findMany({
+        where: { shop },
         orderBy: { createdAt: "desc" },
         take: 500,
       }),
@@ -39,6 +41,7 @@ export async function loader({ request }) {
 export async function action({ request }) {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
+  const prisma = await getTenantPrisma(shop);
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -49,8 +52,8 @@ export async function action({ request }) {
 
     if (idStr && !Number.isNaN(id)) {
       try {
-        await prisma.countdownAnswer.delete({
-          where: { id },
+        await prisma.countdownAnswer.deleteMany({
+          where: { id, shop },
         });
       } catch (err) {
         console.error("Failed to delete countdownAnswer", err);
