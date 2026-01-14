@@ -80,6 +80,7 @@ async function createNeonDatabase(dbName) {
   const apiKey = requireEnv("NEON_API_KEY");
   const projectId = requireEnv("NEON_PROJECT_ID");
   const branchId = requireEnv("NEON_BRANCH_ID");
+  const ownerName = getNeonOwnerName();
 
   const response = await fetch(
     `https://console.neon.tech/api/v2/projects/${projectId}/branches/${branchId}/databases`,
@@ -90,7 +91,7 @@ async function createNeonDatabase(dbName) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        database: { name: dbName },
+        database: { name: dbName, owner_name: ownerName },
       }),
     },
   );
@@ -107,6 +108,21 @@ async function createNeonDatabase(dbName) {
   throw new Error(
     `Neon database creation failed (${response.status}): ${text || "unknown error"}`,
   );
+}
+
+function getNeonOwnerName() {
+  if (process.env.NEON_DB_OWNER) {
+    return process.env.NEON_DB_OWNER;
+  }
+
+  if (process.env.DATABASE_URL) {
+    const url = new URL(process.env.DATABASE_URL);
+    if (url.username) {
+      return url.username;
+    }
+  }
+
+  throw new Error("NEON_DB_OWNER is required for Neon database creation");
 }
 
 async function maybeRunMigrations(databaseUrl) {
