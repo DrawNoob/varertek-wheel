@@ -1,6 +1,6 @@
 // app/routes/proxy.vadertek-timer.jsx
 
-import { prisma } from "../db.server";
+import { getTenantPrisma } from "../tenant-db.server";
 import { authenticate } from "../shopify.server";
 
 // Отримуємо shop із параметрів proxy (fallback)
@@ -22,6 +22,7 @@ export async function loader({ request }) {
     console.error("APP PROXY LOADER: no shop param");
   } else {
     try {
+      const prisma = await getTenantPrisma(shop);
       const [countdownRecord, wheel] = await Promise.all([
         prisma.countdownSetting.findUnique({ where: { shop } }),
         prisma.wheelSetting.findUnique({ where: { shop } }),
@@ -125,6 +126,7 @@ export async function action({ request }) {
 
     return json({ ok: true });
   }
+  const prisma = await getTenantPrisma(shop);
 
   // -------------------------------------------------------------------
   // 1️⃣ НОВИЙ INTENT → КОЛЕСО ФОРТУНИ (створення знижки)

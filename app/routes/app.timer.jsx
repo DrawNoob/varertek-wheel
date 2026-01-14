@@ -6,7 +6,7 @@
 } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
-import { prisma } from "../db.server";
+import { getTenantPrisma } from "../tenant-db.server";
 
 async function fetchShopTimezone(admin) {
   try {
@@ -82,6 +82,7 @@ function formatDateTimeForInput(isoDate, timeZone) {
 export async function loader({ request }) {
   const { admin, session } = await authenticate.admin(request);
   const shop = session.shop;
+  const prisma = await getTenantPrisma(shop);
 
   let countdownEnd = null;
   let shopTimezone = null;
@@ -104,6 +105,7 @@ export async function loader({ request }) {
 export async function action({ request }) {
   const { admin, session } = await authenticate.admin(request);
   const shop = session.shop;
+  const prisma = await getTenantPrisma(shop);
 
   const formData = await request.formData();
   const raw = formData.get("countdownEnd");
