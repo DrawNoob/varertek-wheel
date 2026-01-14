@@ -666,7 +666,7 @@ export default function AnalyticsPage() {
       </s-section>
       <s-section>
         <s-card-section>
-          <strong>Popular product clicks</strong>
+          <strong>Найпопулярніші продукти:</strong>
         </s-card-section>
         <s-card-section>
           <div style={{ marginTop: 20 }}>
