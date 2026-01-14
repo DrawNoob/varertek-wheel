@@ -96,7 +96,7 @@ function buildRange(url) {
 }
 
 export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const shop = session.shop;
   const prisma = await getTenantPrisma(shop);
   const url = new URL(request.url);
@@ -205,6 +205,86 @@ export const loader = async ({ request }) => {
     orderBy: { createdAt: "desc" },
     take: MAX_EVENTS_FOR_SUMMARY,
   });
+  const topProductClicks = await prisma.userEvent.groupBy({
+    by: ["productHandle"],
+    where: {
+      shop,
+      createdAt: { gte: range.start, lt: range.end },
+      eventType: "product_click",
+      productHandle: { not: null },
+    },
+    _count: { _all: true },
+    orderBy: { _count: { productHandle: "desc" } },
+    take: 8,
+  });
+
+  let topProducts = [];
+  if (topProductClicks.length && admin) {
+    const queryParts = topProductClicks.map((row, idx) => {
+      let handle = String(row.productHandle || "");
+      try {
+        handle = decodeURIComponent(handle);
+      } catch {}
+      handle = handle.replace(/"/g, "\\\"");
+      return `p${idx}: productByHandle(handle: "${handle}") { id title handle onlineStoreUrl featuredImage { url altText } legacyResourceId }`;
+    });
+    const query = `#graphql
+      query TopProducts {
+        ${queryParts.join("\n")}
+      }
+    `;
+
+    try {
+      const response = await admin.graphql(query);
+      const jsonResp = await response.json();
+      const data = jsonResp?.data || {};
+      topProducts = topProductClicks.map((row, idx) => {
+        const product = data[`p${idx}`];
+        const legacyId = product?.legacyResourceId;
+        let handle = row.productHandle;
+        try {
+          handle = decodeURIComponent(String(handle || ""));
+        } catch {}
+        return {
+          handle,
+          title: product?.title || row.productHandle,
+          imageUrl: product?.featuredImage?.url || null,
+          imageAlt: product?.featuredImage?.altText || "",
+          adminUrl: legacyId ? `https://${shop}/admin/products/${legacyId}` : null,
+          previewUrl: product?.onlineStoreUrl || null,
+          storefrontUrl: handle ? `https://${shop}/products/${handle}` : null,
+          clicks: row._count?._all || 0,
+        };
+      });
+    } catch (err) {
+      console.error("Failed to load product info", err);
+      topProducts = topProductClicks.map((row) => ({
+        handle: row.productHandle,
+        title: row.productHandle,
+        imageUrl: null,
+        imageAlt: "",
+        adminUrl: null,
+        previewUrl: null,
+        storefrontUrl: row.productHandle
+          ? `https://${shop}/products/${row.productHandle}`
+          : null,
+        clicks: row._count?._all || 0,
+      }));
+    }
+  } else {
+    topProducts = topProductClicks.map((row) => ({
+      handle: row.productHandle,
+      title: row.productHandle,
+      imageUrl: null,
+      imageAlt: "",
+      adminUrl: null,
+      previewUrl: null,
+      storefrontUrl: row.productHandle
+        ? `https://${shop}/products/${row.productHandle}`
+        : null,
+      clicks: row._count?._all || 0,
+    }));
+  }
 
   const totalsByType = {
     page_view: 0,
@@ -280,6 +360,7 @@ export const loader = async ({ request }) => {
     users,
     eventTypeCounts,
     tooltipData,
+    topProducts,
     range: {
       type: range.range,
       label: range.label,
@@ -333,7 +414,7 @@ function formatDateLabel(isoDate) {
 }
 
 export default function AnalyticsPage() {
-  const { users, eventTypeCounts, tooltipData, summary, chart, range } =
+  const { users, eventTypeCounts, tooltipData, summary, chart, range, topProducts } =
     useLoaderData();
   const countsByEmail = eventTypeCounts.reduce((acc, row) => {
     const email = row.email;
@@ -376,7 +457,7 @@ export default function AnalyticsPage() {
   };
 
   const maxValue = Math.max(1, ...chart.totalsByDay);
-  const width = 700;
+  const width = 1200;
   const height = 180;
   const padding = 30;
   const denom = Math.max(1, chart.totalsByDay.length - 1);
@@ -401,6 +482,7 @@ export default function AnalyticsPage() {
     .sort((a, b) => b[1] - a[1]);
   const summaryPaidTypeEntries = Object.entries(summary.typeCountsPaid || {})
     .sort((a, b) => b[1] - a[1]);
+  const displayProducts = Array.from({ length: 8 }, (_, idx) => topProducts[idx] || null);
 
   return (
     <s-page heading="Analytics">
@@ -472,6 +554,7 @@ export default function AnalyticsPage() {
           <div
             style={{
               display: "grid",
+              marginTop: 20,
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
               gap: "12px",
             }}
@@ -581,6 +664,101 @@ export default function AnalyticsPage() {
           </div>
         </s-card-section>
       </s-section>
+      <s-section>
+        <s-card-section>
+          <strong>Popular product clicks</strong>
+        </s-card-section>
+        <s-card-section>
+          <div style={{ marginTop: 20 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(8, minmax(90px, 1fr))",
+                gap: "10px",
+              }}
+            >
+              {displayProducts.map((product, idx) => {
+                if (!product) {
+                  return (
+                    <div
+                      key={`empty-${idx}`}
+                      style={{
+                        border: "1px dashed #e5e7eb",
+                        borderRadius: 10,
+                        padding: 10,
+                        background: "#fafafa",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "100%",
+                          aspectRatio: "1 / 1",
+                          borderRadius: 8,
+                          background: "#f3f4f6",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#9ca3af",
+                          fontSize: 11,
+                        }}
+                      >
+                        No data
+                      </div>
+                      <div style={{ marginTop: 6, fontSize: 11, color: "#9ca3af" }}>
+                        Clicks: 0
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={product.handle || `product-${idx}`}
+                    style={{
+                      border: "1px solid #eee",
+                      borderRadius: 10,
+                      padding: 10,
+                    }}
+                  >
+                    <a
+                      href={product.previewUrl || product.storefrontUrl || product.adminUrl || "#"}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ textDecoration: "none", display: "block" }}
+                    >
+                      <div
+                        style={{
+                          width: "100%",
+                          aspectRatio: "1 / 1",
+                          background: "#f3f4f6",
+                          borderRadius: 8,
+                          overflow: "hidden",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        {product.imageUrl ? (
+                          <img
+                            src={product.imageUrl}
+                            alt={product.imageAlt || product.title}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                        ) : (
+                          <span style={{ fontSize: 12, color: "#6b7280" }}>No image</span>
+                      )}
+                    </div>
+                  </a>
+                  <div style={{ marginTop: 6, fontSize: 11, color: "#6b7280" }}>
+                    Clicks: {product.clicks}
+                  </div>
+                </div>
+              );
+            })}
+            </div>
+          </div>
+        </s-card-section>
+      </s-section>
 
       <s-section>
         <s-card-section>
@@ -588,7 +766,7 @@ export default function AnalyticsPage() {
         </s-card-section>
         <s-divider />
         <s-card-section>
-          <div style={{ overflowX: "auto" }}>
+          <div style={{ overflowX: "auto", marginTop: 20 }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
