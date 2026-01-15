@@ -549,11 +549,18 @@ export default function AnalyticsPage() {
   const displayProducts = Array.from({ length: 8 }, (_, idx) => topProducts[idx] || null);
   const renderCompareValue = (current, previous) => {
     if (!summary.compareSummary) return null;
+    if (typeof current !== "number" || typeof previous !== "number") return null;
     const color =
       previous < current ? "#ef4444" : previous > current ? "#16a34a" : "#6b7280";
+    const diff = current - previous;
+    const diffLabel = diff > 0 ? `+${diff}` : `${diff}`;
+    const diffColor = diff > 0 ? "#16a34a" : diff < 0 ? "#ef4444" : "#6b7280";
     return (
-      <span style={{ fontSize: 12, color, marginLeft: 6 }}>
-        {previous}
+      <span style={{ fontSize: 12, marginLeft: 18 }}>
+        | {previous} |
+        <span style={{ marginLeft: 12, color: diffColor }}>
+          ({diffLabel})
+        </span>
       </span>
     );
   };
