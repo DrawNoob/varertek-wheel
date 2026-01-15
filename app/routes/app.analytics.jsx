@@ -176,12 +176,12 @@ export const loader = async ({ request }) => {
     if (!event.email) return acc;
     if (!acc[event.email]) {
       acc[event.email] = {
-        page_view: [],
-        product_click: [],
-        add_to_cart: [],
-        button_click: [],
-        product_type_purchase: [],
-        product_type_paid: [],
+        page_view: {},
+        product_click: {},
+        add_to_cart: {},
+        button_click: {},
+        product_type_purchase: {},
+        product_type_paid: {},
       };
     }
 
@@ -203,8 +203,12 @@ export const loader = async ({ request }) => {
       value = event.url;
     }
 
-    if (value && !target.includes(value) && target.length < MAX_TOOLTIP_ITEMS) {
-      target.push(value);
+    if (value) {
+      if (target[value]) {
+        target[value] += 1;
+      } else if (Object.keys(target).length < MAX_TOOLTIP_ITEMS) {
+        target[value] = 1;
+      }
     }
 
     return acc;
@@ -500,20 +504,22 @@ export default function AnalyticsPage() {
   ];
 
   const tooltipFor = (email, eventType) => {
-    const items = tooltipData?.[email]?.[eventType] || [];
-    if (items.length === 0) return "";
-    return items
-      .map((item) => {
+    const items = tooltipData?.[email]?.[eventType] || {};
+    const entries = Object.entries(items);
+    if (entries.length === 0) return "";
+    return entries
+      .sort((a, b) => b[1] - a[1])
+      .map(([item, count]) => {
         try {
           const url = new URL(item);
           const decodedPath = decodeURIComponent(url.pathname);
           const decodedSearch = url.search ? decodeURIComponent(url.search) : "";
-          return `${url.hostname}${decodedPath}${decodedSearch}`;
+          return `${url.hostname}${decodedPath}${decodedSearch} ( ${count} )`;
         } catch {
           try {
-            return decodeURIComponent(item);
+            return `${decodeURIComponent(item)} ( ${count} )`;
           } catch {
-            return item;
+            return `${item} ( ${count} )`;
           }
         }
       })
