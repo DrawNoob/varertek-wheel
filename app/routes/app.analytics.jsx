@@ -96,12 +96,40 @@ function buildRange(url) {
   };
 }
 
+function buildCompareRange(range) {
+  if (range.range === "day") {
+    const end = new Date(range.start);
+    const start = new Date(end.getTime() - DAY_MS);
+    return { start, end };
+  }
+
+  if (range.range === "month") {
+    const end = new Date(range.start);
+    const start = new Date(end);
+    start.setMonth(start.getMonth() - 1);
+    return { start, end };
+  }
+
+  const end = new Date(range.start);
+  const start = new Date(end.getTime() - range.days * DAY_MS);
+  return { start, end };
+}
+
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
   const shop = session.shop;
   const prisma = await getTenantPrisma(shop);
   const url = new URL(request.url);
   const range = buildRange(url);
+  const compareEnabled = url.searchParams.get("compare") === "1";
+  const summaryEventTypes = [
+    "page_view",
+    "product_click",
+    "add_to_cart",
+    "button_click",
+    "product_type_purchase",
+    "product_type_paid",
+  ];
 
   const users = await prisma.userEvent.groupBy({
     by: ["email"],
@@ -186,16 +214,7 @@ export const loader = async ({ request }) => {
     where: {
       shop,
       createdAt: { gte: range.start, lt: range.end },
-      eventType: {
-        in: [
-          "page_view",
-          "product_click",
-          "add_to_cart",
-          "button_click",
-          "product_type_purchase",
-          "product_type_paid",
-        ],
-      },
+      eventType: { in: summaryEventTypes },
     },
     select: {
       createdAt: true,
@@ -206,6 +225,47 @@ export const loader = async ({ request }) => {
     orderBy: { createdAt: "desc" },
     take: MAX_EVENTS_FOR_SUMMARY,
   });
+
+  let compareSummary = null;
+  if (compareEnabled) {
+    const compareRange = buildCompareRange(range);
+    const compareEvents = await prisma.userEvent.findMany({
+      where: {
+        shop,
+        createdAt: { gte: compareRange.start, lt: compareRange.end },
+        eventType: { in: summaryEventTypes },
+      },
+      select: {
+        eventType: true,
+        email: true,
+      },
+      take: MAX_EVENTS_FOR_SUMMARY,
+    });
+    const compareTotalsByType = {
+      page_view: 0,
+      product_click: 0,
+      add_to_cart: 0,
+      button_click: 0,
+      product_type_purchase: 0,
+      product_type_paid: 0,
+    };
+    const compareUsers = new Set();
+
+    compareEvents.forEach((event) => {
+      if (compareTotalsByType[event.eventType] !== undefined) {
+        compareTotalsByType[event.eventType] += 1;
+      }
+      if (event.email) {
+        compareUsers.add(event.email);
+      }
+    });
+
+    compareSummary = {
+      totalEvents: compareEvents.length,
+      totalsByType: compareTotalsByType,
+      uniqueUsers: compareUsers.size,
+    };
+  }
   const topProductClicks = await prisma.userEvent.groupBy({
     by: ["productHandle"],
     where: {
@@ -374,6 +434,8 @@ export const loader = async ({ request }) => {
       uniqueUsers: uniqueUsers.size,
       typeCounts: summaryTypeCounts,
       typeCountsPaid: summaryTypeCountsPaid,
+      compareEnabled,
+      compareSummary,
     },
     chart: {
       labels,
@@ -485,6 +547,16 @@ export default function AnalyticsPage() {
   const summaryPaidTypeEntries = Object.entries(summary.typeCountsPaid || {})
     .sort((a, b) => b[1] - a[1]);
   const displayProducts = Array.from({ length: 8 }, (_, idx) => topProducts[idx] || null);
+  const renderCompareValue = (current, previous) => {
+    if (!summary.compareSummary) return null;
+    const color =
+      previous < current ? "#ef4444" : previous > current ? "#16a34a" : "#6b7280";
+    return (
+      <span style={{ fontSize: 12, color, marginLeft: 6 }}>
+        {previous}
+      </span>
+    );
+  };
 
   return (
     <s-page heading="Analytics">
@@ -514,6 +586,23 @@ export default function AnalyticsPage() {
                   <option value="day">Конкретний день</option>
                 </select>
               </div>
+
+              <label
+                style={{
+                  fontSize: 12,
+                  display: "inline-flex",
+                  gap: 6,
+                  alignItems: "center",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  name="compare"
+                  value="1"
+                  defaultChecked={summary.compareEnabled}
+                />
+                Порівняння за цей самий період
+              </label>
 
               {rangeType === "month" && (
                 <div>
@@ -567,27 +656,57 @@ export default function AnalyticsPage() {
           >
             <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
               <div style={{ fontSize: 12, color: "#6b7280" }}>Всього подій</div>
-              <div style={{ fontSize: 20, fontWeight: 600 }}>{summary.totalEvents}</div>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>
+                {summary.totalEvents}
+                {renderCompareValue(summary.totalEvents, summary.compareSummary?.totalEvents)}
+              </div>
             </div>
             <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
               <div style={{ fontSize: 12, color: "#6b7280" }}>Перегляди сторінки</div>
-              <div style={{ fontSize: 20, fontWeight: 600 }}>{summary.totalsByType.page_view}</div>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>
+                {summary.totalsByType.page_view}
+                {renderCompareValue(
+                  summary.totalsByType.page_view,
+                  summary.compareSummary?.totalsByType.page_view,
+                )}
+              </div>
             </div>
             <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
               <div style={{ fontSize: 12, color: "#6b7280" }}>Клiк по продукту</div>
-              <div style={{ fontSize: 20, fontWeight: 600 }}>{summary.totalsByType.product_click}</div>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>
+                {summary.totalsByType.product_click}
+                {renderCompareValue(
+                  summary.totalsByType.product_click,
+                  summary.compareSummary?.totalsByType.product_click,
+                )}
+              </div>
             </div>
             <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
               <div style={{ fontSize: 12, color: "#6b7280" }}>Додавання у кошик</div>
-              <div style={{ fontSize: 20, fontWeight: 600 }}>{summary.totalsByType.add_to_cart}</div>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>
+                {summary.totalsByType.add_to_cart}
+                {renderCompareValue(
+                  summary.totalsByType.add_to_cart,
+                  summary.compareSummary?.totalsByType.add_to_cart,
+                )}
+              </div>
             </div>
             <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
               <div style={{ fontSize: 12, color: "#6b7280" }}>Кліки по кнопках</div>
-              <div style={{ fontSize: 20, fontWeight: 600 }}>{summary.totalsByType.button_click}</div>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>
+                {summary.totalsByType.button_click}
+                {renderCompareValue(
+                  summary.totalsByType.button_click,
+                  summary.compareSummary?.totalsByType.button_click,
+                )}
+              </div>
             </div>
             <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
               <div style={{ fontSize: 12, color: "#6b7280" }}>Користувачі</div>
-              <div style={{ fontSize: 20, fontWeight: 600 }}>{summary.uniqueUsers}</div>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>
+                {summary.uniqueUsers}
+                {renderCompareValue(summary.uniqueUsers, summary.compareSummary?.uniqueUsers)}
+              </div>
             </div>
             <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
               <div style={{ fontSize: 12, color: "#6b7280" }}>
