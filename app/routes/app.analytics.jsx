@@ -549,15 +549,49 @@ export default function AnalyticsPage() {
   const displayProducts = Array.from({ length: 8 }, (_, idx) => topProducts[idx] || null);
   const renderCompareValue = (current, previous) => {
     if (!summary.compareSummary) return null;
+    if (typeof current !== "number" || typeof previous !== "number") return null;
     const color =
       previous < current ? "#ef4444" : previous > current ? "#16a34a" : "#6b7280";
+    const diff = current - previous;
+    const diffLabel = diff > 0 ? `+${diff}` : `${diff}`;
+    const diffColor = diff > 0 ? "#16a34a" : diff < 0 ? "#ef4444" : "#6b7280";
     return (
-      <span style={{ fontSize: 12, color, marginLeft: 6 }}>
-        {previous}
+      <span style={{ fontSize: 12, marginLeft: 18 }}>
+        | {previous} |
+        <span style={{ marginLeft: 12, color: diffColor }}>
+          ({diffLabel})
+        </span>
       </span>
-    );
+);
   };
-
+  const selectStyle = {
+    appearance: "none",
+    WebkitAppearance: "none",
+    MozAppearance: "none",
+    backgroundColor: "#fff",
+    border: "1px solid #d1d5db",
+    borderRadius: 8,
+    padding: "4px 32px 6px 10px",
+    fontSize: 13,
+    lineHeight: "18px",
+    color: "#111827",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+    backgroundImage:
+      "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='%236b7280'><path d='M5.5 7.5 10 12l4.5-4.5' stroke='%236b7280' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>\")",
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "right 10px center",
+    backgroundSize: "12px",
+  };
+const inputStyle = {
+    backgroundColor: "#fff",
+    border: "1px solid #d1d5db",
+    borderRadius: 8,
+    padding: "4px 10px",
+    fontSize: 13,
+    lineHeight: "18px",
+    color: "#111827",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+  };
   return (
     <s-page heading="Analytics">
       <s-section>
@@ -579,6 +613,7 @@ export default function AnalyticsPage() {
                   name="range"
                   value={rangeType}
                   onChange={(event) => setRangeType(event.target.value)}
+                  style={selectStyle}
                 >
                   <option value="7d">7 днів</option>
                   <option value="30d">30 днів</option>
@@ -593,6 +628,8 @@ export default function AnalyticsPage() {
                   display: "inline-flex",
                   gap: 6,
                   alignItems: "center",
+                  marginLeft: "auto",
+                  order: 99,
                 }}
               >
                 <input
@@ -609,7 +646,12 @@ export default function AnalyticsPage() {
                   <label style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
                     Місяць
                   </label>
-                  <input type="month" name="month" defaultValue={range.month} />
+                  <input
+                    type="month"
+                    name="month"
+                    defaultValue={range.month}
+                    style={inputStyle}
+                  />
                 </div>
               )}
 
@@ -618,7 +660,12 @@ export default function AnalyticsPage() {
                   <label style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
                     День
                   </label>
-                  <input type="date" name="day" defaultValue={range.day} />
+                  <input
+                    type="date"
+                    name="day"
+                    defaultValue={range.day}
+                    style={inputStyle}
+                  />
                 </div>
               )}
 
