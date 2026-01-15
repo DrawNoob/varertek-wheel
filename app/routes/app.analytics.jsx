@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Form, useLoaderData, useRouteError } from "react-router";
+import { Form, useLoaderData, useLocation, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { getTenantPrisma } from "../tenant-db.server";
@@ -122,6 +122,7 @@ export const loader = async ({ request }) => {
   const url = new URL(request.url);
   const range = buildRange(url);
   const compareEnabled = url.searchParams.get("compare") === "1";
+  const productTypeFilter = url.searchParams.get("productType") || "";
   const summaryEventTypes = [
     "page_view",
     "product_click",
@@ -280,7 +281,7 @@ export const loader = async ({ request }) => {
     },
     _count: { _all: true },
     orderBy: { _count: { productHandle: "desc" } },
-    take: 8,
+    take: 50,
   });
 
   let topProducts = [];
@@ -291,7 +292,7 @@ export const loader = async ({ request }) => {
         handle = decodeURIComponent(handle);
       } catch {}
       handle = handle.replace(/"/g, "\\\"");
-      return `p${idx}: productByHandle(handle: "${handle}") { id title handle onlineStoreUrl featuredImage { url altText } legacyResourceId }`;
+      return `p${idx}: productByHandle(handle: "${handle}") { id title handle productType onlineStoreUrl featuredImage { url altText } legacyResourceId }`;
     });
     const query = `#graphql
       query TopProducts {
@@ -313,6 +314,7 @@ export const loader = async ({ request }) => {
         return {
           handle,
           title: product?.title || row.productHandle,
+          productType: product?.productType || "",
           imageUrl: product?.featuredImage?.url || null,
           imageAlt: product?.featuredImage?.altText || "",
           adminUrl: legacyId ? `https://${shop}/admin/products/${legacyId}` : null,
@@ -326,6 +328,7 @@ export const loader = async ({ request }) => {
       topProducts = topProductClicks.map((row) => ({
         handle: row.productHandle,
         title: row.productHandle,
+        productType: "",
         imageUrl: null,
         imageAlt: "",
         adminUrl: null,
@@ -340,6 +343,7 @@ export const loader = async ({ request }) => {
     topProducts = topProductClicks.map((row) => ({
       handle: row.productHandle,
       title: row.productHandle,
+      productType: "",
       imageUrl: null,
       imageAlt: "",
       adminUrl: null,
@@ -349,6 +353,35 @@ export const loader = async ({ request }) => {
         : null,
       clicks: row._count?._all || 0,
     }));
+  }
+  if (productTypeFilter) {
+    topProducts = topProducts
+      .filter((product) => product.productType === productTypeFilter)
+      .sort((a, b) => b.clicks - a.clicks);
+  }
+
+  let productTypes = [];
+  if (admin) {
+    try {
+      const typesQuery = `#graphql
+        query ProductTypes {
+          shop {
+            productTypes(first: 250) {
+              edges { node }
+            }
+          }
+        }
+      `;
+      const response = await admin.graphql(typesQuery);
+      const jsonResp = await response.json();
+      productTypes =
+        jsonResp?.data?.shop?.productTypes?.edges
+          ?.map((edge) => edge?.node)
+          ?.filter(Boolean) || [];
+    } catch (err) {
+      console.error("Failed to load product types", err);
+      productTypes = [];
+    }
   }
 
   const totalsByType = {
@@ -426,6 +459,8 @@ export const loader = async ({ request }) => {
     eventTypeCounts,
     tooltipData,
     topProducts,
+    productTypes,
+    productTypeFilter,
     range: {
       type: range.range,
       label: range.label,
@@ -481,8 +516,18 @@ function formatDateLabel(isoDate) {
 }
 
 export default function AnalyticsPage() {
-  const { users, eventTypeCounts, tooltipData, summary, chart, range, topProducts } =
-    useLoaderData();
+  const {
+    users,
+    eventTypeCounts,
+    tooltipData,
+    summary,
+    chart,
+    range,
+    topProducts,
+    productTypes,
+    productTypeFilter,
+  } = useLoaderData();
+  const location = useLocation();
   const [rangeType, setRangeType] = useState(range.type);
   const countsByEmail = eventTypeCounts.reduce((acc, row) => {
     const email = row.email;
@@ -524,6 +569,16 @@ export default function AnalyticsPage() {
         }
       })
       .join("\n");
+  };
+  const buildProductTypeHref = (type) => {
+    const params = new URLSearchParams(location.search);
+    if (type) {
+      params.set("productType", type);
+    } else {
+      params.delete("productType");
+    }
+    const query = params.toString();
+    return query ? `${location.pathname}?${query}` : location.pathname;
   };
 
   const maxValue = Math.max(1, ...chart.totalsByDay);
@@ -844,7 +899,50 @@ const inputStyle = {
       </s-section>
       <s-section>
         <s-card-section>
-          <strong>Найпопулярніші продукти:</strong>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "12px",
+              flexWrap: "wrap",
+            }}
+          >
+            <strong>Найпопулярніші продукти:</strong>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <a
+                href={buildProductTypeHref("")}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 999,
+                  border: "1px solid #e5e7eb",
+                  background: productTypeFilter ? "#fff" : "#111827",
+                  color: productTypeFilter ? "#111827" : "#fff",
+                  fontSize: 12,
+                  textDecoration: "none",
+                }}
+              >
+                Всі типи
+              </a>
+              {productTypes.map((type) => (
+                <a
+                  key={type}
+                  href={buildProductTypeHref(type)}
+                  style={{
+                    padding: "4px 10px",
+                    borderRadius: 999,
+                    border: "1px solid #e5e7eb",
+                    background: productTypeFilter === type ? "#111827" : "#fff",
+                    color: productTypeFilter === type ? "#fff" : "#111827",
+                    fontSize: 12,
+                    textDecoration: "none",
+                  }}
+                >
+                  {type}
+                </a>
+              ))}
+            </div>
+          </div>
         </s-card-section>
         <s-card-section>
           <div style={{ marginTop: 20 }}>
