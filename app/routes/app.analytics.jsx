@@ -1,4 +1,5 @@
-﻿import { Form, useLoaderData, useRouteError } from "react-router";
+import { useState } from "react";
+import { Form, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import { getTenantPrisma } from "../tenant-db.server";
@@ -393,9 +394,9 @@ function formatEventType(type) {
     case "button_click":
       return "Клік по кнопці";
     case "product_type_purchase":
-      return "Checkout (типи)";
+      return "Checkout (Типи)";
     case "product_type_paid":
-      return "Оплачені покупки (типи)";
+      return "Оплачені покупки (Типи)";
     default:
       return type;
   }
@@ -416,6 +417,7 @@ function formatDateLabel(isoDate) {
 export default function AnalyticsPage() {
   const { users, eventTypeCounts, tooltipData, summary, chart, range, topProducts } =
     useLoaderData();
+  const [rangeType, setRangeType] = useState(range.type);
   const countsByEmail = eventTypeCounts.reduce((acc, row) => {
     const email = row.email;
     if (!acc[email]) acc[email] = [];
@@ -501,7 +503,11 @@ export default function AnalyticsPage() {
                 <label style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
                   Період
                 </label>
-                <select name="range" defaultValue={range.type}>
+                <select
+                  name="range"
+                  value={rangeType}
+                  onChange={(event) => setRangeType(event.target.value)}
+                >
                   <option value="7d">7 днів</option>
                   <option value="30d">30 днів</option>
                   <option value="month">Конкретний місяць</option>
@@ -509,7 +515,7 @@ export default function AnalyticsPage() {
                 </select>
               </div>
 
-              {range.type === "month" && (
+              {rangeType === "month" && (
                 <div>
                   <label style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
                     Місяць
@@ -518,7 +524,7 @@ export default function AnalyticsPage() {
                 </div>
               )}
 
-              {range.type === "day" && (
+              {rangeType === "day" && (
                 <div>
                   <label style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
                     День
@@ -643,7 +649,7 @@ export default function AnalyticsPage() {
                       style={{ cursor: "pointer" }}
                     >
                       <title>
-                        {`Перегляд сторінки: ${point.breakdown.page_view}\\nКлік по продукту: ${point.breakdown.product_click}\\nДодав у кошик: ${point.breakdown.add_to_cart}\nКлік по кнопці: ${point.breakdown.button_click}\nCheckout (типи): ${point.breakdown.product_type_purchase}\nPaid (типи): ${point.breakdown.product_type_paid}\n${checkoutTypeLines}\n${paidTypeLines}`}
+                        {`Перегляд сторінки: ${point.breakdown.page_view}\nКлік по продукту: ${point.breakdown.product_click}\nДодав у кошик: ${point.breakdown.add_to_cart}\nКлік по кнопці: ${point.breakdown.button_click}\nCheckout (Типи): ${point.breakdown.product_type_purchase}\nPaid (Типи) ${point.breakdown.product_type_paid}\n${checkoutTypeLines}\n${paidTypeLines}`}
                       </title>
                     </circle>
                     <text
