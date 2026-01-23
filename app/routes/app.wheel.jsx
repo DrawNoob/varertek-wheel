@@ -84,6 +84,38 @@ export async function action({ request }) {
     segment6: buildSegment(6),
   };
 
+  const enabledSegments = Object.values(payload).filter(
+    (segment) => segment?.enabled !== false,
+  );
+  const invalidChance = enabledSegments.some(
+    (segment) => !Number.isFinite(segment.chance) || segment.chance < 0,
+  );
+  const totalChance = enabledSegments.reduce(
+    (sum, segment) => sum + (segment.chance || 0),
+    0,
+  );
+
+  if (!enabledSegments.length) {
+    return {
+      okWheel: false,
+      messageWheel: "Увімкніть хоча б один сектор.",
+    };
+  }
+
+  if (invalidChance) {
+    return {
+      okWheel: false,
+      messageWheel: "Шанс має бути числом ≥ 0.",
+    };
+  }
+
+  if (Math.abs(totalChance - 100) > 0.0001) {
+    return {
+      okWheel: false,
+      messageWheel: "Сума шансів має дорівнювати 100%.",
+    };
+  }
+
   try {
     await prisma.wheelSetting.upsert({
       where: { shop },
