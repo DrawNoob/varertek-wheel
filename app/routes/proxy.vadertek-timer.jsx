@@ -1,4 +1,4 @@
-// app/routes/proxy.vadertek-timer.jsx
+﻿// app/routes/proxy.vadertek-timer.jsx
 
 import { getTenantPrisma } from "../tenant-db.server";
 import { authenticate } from "../shopify.server";
@@ -56,7 +56,7 @@ export async function loader({ request }) {
 // POST → логіка відповіді + wheelSpin
 // ------------------------------------------------------------
 export async function action({ request }) {
-  // 🔐 ОФІЦІЙНА АВТЕНТИФІКАЦІЯ ДЛЯ APP PROXY
+  // ОФІЦІЙНА АВТЕНТИФІКАЦІЯ ДЛЯ APP PROXY
   let admin, session;
 
   try {
@@ -133,9 +133,17 @@ export async function action({ request }) {
   // -------------------------------------------------------------------
   if (intent === "wheelSpin") {
     const email = body.email?.trim() || null;
+    const emailRegex =
+      /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i;
 
     if (!email) {
       return json({ ok: false, message: "Email required." }, 400);
+    }
+    if (!emailRegex.test(email)) {
+      return json(
+        { ok: false, message: "Введіть коректний email." },
+        400,
+      );
     }
 
     // Перевірка на дубль — уже отримував код
@@ -150,7 +158,7 @@ export async function action({ request }) {
       });
     }
 
-    // Отримуємо налаштування wheel
+    // РћС‚СЂРёРјСѓС”РјРѕ РЅР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ wheel
     const wheel = await prisma.wheelSetting.findUnique({ where: { shop } });
 
     if (!wheel) {
@@ -177,6 +185,16 @@ export async function action({ request }) {
     }
 
     // Розрахунок рандому по шансам
+    const invalidChance = segments.some(
+      (segment) => !Number.isFinite(segment.chance) || segment.chance < 0,
+    );
+    if (invalidChance) {
+      return json({
+        ok: false,
+        message: "Некоректні значення шансів. Має бути число >= 0.",
+      });
+    }
+
     const total = segments.reduce((sum, s) => sum + (s.chance || 0), 0);
 
     if (total === 0) {
@@ -185,14 +203,19 @@ export async function action({ request }) {
         message: "Шанси секторів = 0.",
       });
     }
-
+    if (Math.abs(total - 100) > 0.0001) {
+      return json({
+        ok: false,
+        message: "Сума шансів має дорівнювати 100%.",
+      });
+    }
     const rnd = Math.random() * total;
     let acc = 0;
     let winIndex = 0;
 
     for (let i = 0; i < segments.length; i++) {
       acc += segments[i].chance || 0;
-      if (rnd <= acc) {
+      if (rnd < acc) {
         winIndex = i;
         break;
       }
@@ -241,7 +264,7 @@ export async function action({ request }) {
           {
             variables: {
               discount: {
-                title: chosen.label || "Wheel – Free Shipping",
+                title: chosen.label || "Wheel - Free Shipping",
                 code,
                 startsAt: nowIso,
                 endsAt: expiresAt,
@@ -410,5 +433,6 @@ function json(data, status = 200) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
 
 

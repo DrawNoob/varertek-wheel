@@ -10,22 +10,6 @@
   data-email="{{ customer.email | escape }}"
   data-error-message="{{ block.settings.error_message | escape }}"
   data-success-message="{{ block.settings.success_message | escape }}"
-  style="
-    --overlay-bg: {{ block.settings.overlay_bg }};
-    --modal-bg: {{ block.settings.modal_bg }};
-    --text-color: {{ block.settings.text_color }};
-    --btn-bg: {{ block.settings.button_bg }};
-    --btn-text: {{ block.settings.button_text }};
-    --close-bg: {{ block.settings.close_bg }};
-    --close-text: {{ block.settings.close_text }};
-    --wheel-border: {{ block.settings.wheel_border }};
-    --seg1: {{ block.settings.segment_color_1 }};
-    --seg2: {{ block.settings.segment_color_2 }};
-    --seg3: {{ block.settings.segment_color_3 }};
-    --seg4: {{ block.settings.segment_color_4 }};
-    --seg5: {{ block.settings.segment_color_5 }};
-    --seg6: {{ block.settings.segment_color_6 }};
-  "
 >
   <div class="vt-wheel-modal">
     <button
@@ -33,35 +17,60 @@
       class="vt-wheel-close"
       aria-label="Закрити"
     >
-      ×
+      <img 
+        width="45"
+        height="45"
+        src="{{ 'close-icon.svg' | asset_url }}" 
+        alt="Icon close">
     </button>
 
     <div class="vt-wheel-content">
-      {% if block.settings.heading != blank %}
-        <h2 class="vt-wheel-heading">
-          {{ block.settings.heading }}
-        </h2>
-      {% endif %}
-
-      {% if block.settings.subheading != blank %}
-        <p class="vt-wheel-subheading">
-          {{ block.settings.subheading }}
-        </p>
-      {% endif %}
-
       <div class="vt-wheel-layout">
-        <div class="vt-wheel-wrapper">
-          <div class="vt-wheel-pointer"></div>
+        <div class="vt-wheel-hero">
+          <div class="vt-wheel-wrapper">
+          <div class="vt-wheel-pointer">
+            <img
+              src="{{ 'pointer.svg' | asset_url }}"
+              alt="Вказівник"
+              width="40"
+              height="40"
+            >
+          </div>
 
-          <div class="vt-wheel-disc">
-            <div class="vt-wheel-labels" aria-hidden="true"></div>
-            <div class="vt-wheel-center">🎁</div>
+            <div class="vt-wheel-disc">
+              <div class="vt-wheel-labels" aria-hidden="true"></div>
+              <div class="vt-wheel-center">
+                <img src="{{ 'logo.png' |  asset_url }}" alt="">
+              </div>
+            </div>
+          </div>
+
+          <div class="vt-wheel-product">
+            {% if block.settings.product_image != blank %}
+              <img
+                class="vt-wheel-product-image"
+                src="{{ block.settings.product_image | image_url }}"
+                alt="image"
+                loading="lazy"
+              >
+            {% endif %}
           </div>
         </div>
 
         <div class="vt-wheel-side">
-          {%- comment -%} Блок з емейлом (опційний) {%- endcomment -%}
+          {%- comment -%} Блок з email (опційний) {%- endcomment -%}
           <div class="vt-wheel-email-wrapper">
+            {% if block.settings.heading != blank %}
+              <h2 class="vt-wheel-heading">
+                {{ block.settings.heading }}
+              </h2>
+            {% endif %}
+
+            {% if block.settings.subheading != blank %}
+              <p class="vt-wheel-subheading">
+                {{ block.settings.subheading }}
+              </p>
+            {% endif %}
             <label for="vt-wheel-email-{{ uid }}" class="vt-wheel-email-label">
               {{ block.settings.email_label }}
             </label>
@@ -75,7 +84,7 @@
 
           {%- comment -%} Блок з промокодом {%- endcomment -%}
           <div class="vt-wheel-code-wrapper vt-wheel-code-wrapper--hidden">
-            <label class="vt-wheel-code-label">Ваш промокод:</label>
+            <label style="color: black;" class="vt-wheel-code-label">Ваш промокод:</label>
             <div class="vt-wheel-code-row">
               <input
                 type="text"
@@ -88,6 +97,7 @@
           </div>
 
           <p class="vt-wheel-error" data-vt-wheel-error></p>
+          <p class="vt-wheel-success" data-vt-wheel-success></p>
 
           {% if block.settings.button_label != blank %}
             <button type="button" class="vt-wheel-spin-btn">
@@ -97,7 +107,6 @@
         </div>
       </div>
 
-      <p class="vt-wheel-success" data-vt-wheel-success></p>
     </div>
   </div>
 </div>
@@ -110,7 +119,7 @@
   class="vt-wheel-trigger vt-wheel-trigger--hidden vt-wheel-trigger-{{ uid }}"
   aria-label="Відкрити колесо фортуни"
 >
-  🎁
+  GO
 </button>
 
 <script src="{{ 'fortune-wheel.js' | asset_url }}" defer></script>
@@ -172,100 +181,17 @@
       "label": "Повідомлення після успішного крутіння",
       "default": "Ви успішно прокрутили колесо!"
     },
-
     {
       "type": "header",
-      "content": "Кольори попапа"
+      "content": "Зображення"
     },
     {
-      "type": "color",
-      "id": "overlay_bg",
-      "label": "Фон затемнення",
-      "default": "rgba(0,0,0,0.65)"
-    },
-    {
-      "type": "color",
-      "id": "modal_bg",
-      "label": "Фон вікна",
-      "default": "#111827"
-    },
-    {
-      "type": "color",
-      "id": "text_color",
-      "label": "Колір тексту",
-      "default": "#FFFFFF"
-    },
-    {
-      "type": "color",
-      "id": "button_bg",
-      "label": "Фон кнопки «Крутити»",
-      "default": "#10B981"
-    },
-    {
-      "type": "color",
-      "id": "button_text",
-      "label": "Колір тексту кнопки",
-      "default": "#FFFFFF"
-    },
-    {
-      "type": "color",
-      "id": "close_bg",
-      "label": "Фон кнопки закрити",
-      "default": "#374151"
-    },
-    {
-      "type": "color",
-      "id": "close_text",
-      "label": "Колір іконки закрити",
-      "default": "#FFFFFF"
-    },
-    {
-      "type": "color",
-      "id": "wheel_border",
-      "label": "Колір рамки колеса",
-      "default": "#FBBF24"
+      "type": "image_picker",
+      "id": "product_image",
+      "label": "Картинка під колесом"
     },
 
-    {
-      "type": "header",
-      "content": "Кольори секторів колеса"
-    },
-    {
-      "type": "color",
-      "id": "segment_color_1",
-      "label": "Сектор 1",
-      "default": "#F87171"
-    },
-    {
-      "type": "color",
-      "id": "segment_color_2",
-      "label": "Сектор 2",
-      "default": "#FBBF24"
-    },
-    {
-      "type": "color",
-      "id": "segment_color_3",
-      "label": "Сектор 3",
-      "default": "#34D399"
-    },
-    {
-      "type": "color",
-      "id": "segment_color_4",
-      "label": "Сектор 4",
-      "default": "#60A5FA"
-    },
-    {
-      "type": "color",
-      "id": "segment_color_5",
-      "label": "Сектор 5",
-      "default": "#A78BFA"
-    },
-    {
-      "type": "color",
-      "id": "segment_color_6",
-      "label": "Сектор 6",
-      "default": "#F472B6"
-    }
+
   ]
 }
 {% endschema %}

@@ -4,14 +4,7 @@
     return;
   }
   const PROXY_URL = "/apps/vadertek-timer";
-  const DEFAULT_COLORS = [
-    "#f87171",
-    "#fbbf24",
-    "#34d399",
-    "#60a5fa",
-    "#a78bfa",
-    "#f472b6",
-  ];
+  const SEGMENT_COLOR = "#1A365D";
 
   // -----------------------------
   //
@@ -39,21 +32,17 @@
   }
 
   function buildGradient(disc, count) {
-    const style = getComputedStyle(disc);
-    const colors = [];
-    for (let i = 1; i <= 6; i++) {
-      const value = style.getPropertyValue(`--seg${i}`).trim();
-      if (value) colors.push(value);
-    }
-    const palette = colors.length ? colors : DEFAULT_COLORS;
+    const palette = [SEGMENT_COLOR];
     const angle = 360 / count;
     const stops = [];
 
     for (let i = 0; i < count; i++) {
       const start = i * angle;
-      const end = (i + 1) * angle;
+      const mid = start + angle / 2;
+      const end = start + angle;
       const color = palette[i % palette.length];
-      stops.push(`${color} ${start}deg ${end}deg`);
+      stops.push(`${color} ${start}deg ${mid}deg`);
+      stops.push(`#ffffff ${mid}deg ${end}deg`);
     }
 
     disc.style.background = `conic-gradient(${stops.join(", ")})`;
@@ -67,13 +56,16 @@
     labelsRoot.innerHTML = "";
     const count = segments.length;
     const angle = 360 / count;
+    const rect = disc.getBoundingClientRect();
+    const radius = Math.min(rect.width, rect.height) / 2;
+    const labelRadius = Math.max(60, radius - 52);
 
     segments.forEach((seg, idx) => {
       const label = document.createElement("span");
       label.className = "vt-wheel-label";
       label.textContent = seg && seg.label ? seg.label : "";
-      const angleDeg = idx * angle + angle / 2;
-      label.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg) translate(0, -72px) rotate(-${angleDeg}deg)`;
+      const angleDeg = idx * angle + angle / 4;
+      label.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg) translate(0, -${labelRadius}px)`;
       labelsRoot.appendChild(label);
     });
 
@@ -134,7 +126,10 @@
 
       function isValidEmail(value) {
         if (!value) return false;
-        return /\S+@\S+\.\S+/.test(value);
+        const email = value.trim();
+        const emailRegex =
+          /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i;
+        return emailRegex.test(email);
       }
 
       function rememberEmail(value) {
@@ -240,7 +235,7 @@
           showError("");
           showSuccess(`${defaultSuccess} Ваш виграш: ${label}. Код д\u0456йсний 3 доби.`);
           if (centerEl) {
-            centerEl.textContent = "\uD83C\uDF81";
+            // keep existing center content (image/logo)
           }
 
           //
@@ -260,10 +255,11 @@
 
           //
           //
-          const baseOffset = -segmentAngle / 2; 
           const extraTurns = 3 + Math.floor(Math.random() * 3);
           const targetAngle =
-            extraTurns * 360 + index * segmentAngle + baseOffset;
+            extraTurns * 360 +
+            (segments.length - index) * segmentAngle -
+            segmentAngle / 4;
 
           currentRotation += targetAngle;
 
