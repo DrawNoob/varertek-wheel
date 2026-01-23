@@ -133,9 +133,17 @@ export async function action({ request }) {
   // -------------------------------------------------------------------
   if (intent === "wheelSpin") {
     const email = body.email?.trim() || null;
+    const emailRegex =
+      /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i;
 
     if (!email) {
       return json({ ok: false, message: "Email required." }, 400);
+    }
+    if (!emailRegex.test(email)) {
+      return json(
+        { ok: false, message: "Введіть коректний email." },
+        400,
+      );
     }
 
     // Перевірка на дубль — уже отримував код

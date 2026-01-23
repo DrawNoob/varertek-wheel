@@ -3,7 +3,7 @@
 .vt-wheel-overlay {
   position: fixed;
   inset: 0;
-  background: var(--overlay-bg, rgba(0, 0, 0, 0.65));
+  background: rgba(0, 0, 0, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -20,7 +20,7 @@
 
 .vt-wheel-modal {
   background: white;
-  color: var(--text-color, #111111);
+  color: #000000;
   max-width: 1140px;
   width: 100%;
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
@@ -39,6 +39,8 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  background: #000000;
+  color: #ffffff;
 }
 
 .vt-wheel-close:hover {
@@ -56,14 +58,14 @@
   font-weight: 600;
   letter-spacing: 0.5px;
   margin-bottom: 6px;
-  color: #000;
+  color: #000000;
   text-transform: uppercase;
 }
 
 .vt-wheel-subheading {
   font-size: 14px;
   max-width: 420px;
-  color: #000;
+  color: #000000;
   padding-bottom: 50px;
 }
 
@@ -129,34 +131,34 @@
   display: block;
   font-size: 13px;
   margin-bottom: 6px;
-  color: rgba(17, 17, 17, 0.85);
+  color: #000000;
 }
 
 .vt-wheel-email-input {
   width: 100%;
   padding: 8px 0 10px;
   border: none;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.35);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.35);
   font-size: 14px;
   background: transparent;
-  color: #111111;
+  color: #000000;
 }
 
 .vt-wheel-email-input::placeholder {
-  color: rgba(17, 17, 17, 0.45);
+  color: rgba(0, 0, 0, 0.45);
 }
 
 .vt-wheel-email-input:focus {
   outline: none;
-  border-color: #111111;
-  box-shadow: 0 2px 0 rgba(17, 17, 17, 0.25);
+  border-color: #000000;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
 }
 
 .vt-wheel-error {
   min-height: 18px;
   margin: 6px 0 10px;
   font-size: 12px;
-  color: #c53030;
+  color: #dc2626;
   text-align: left;
 }
 
@@ -164,7 +166,7 @@
   min-height: 18px;
   margin-top: 10px;
   font-size: 13px;
-  color: #0f766e;
+  color: #16a34a;
 }
 
 .vt-wheel-disc {
@@ -172,18 +174,18 @@
   height: auto;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
-  border: 12px solid var(--wheel-border, #111111);
+  border: 12px solid #000000;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   background: conic-gradient(
-    var(--seg1, #1f3b6d) 0deg 60deg,
-    var(--seg2, #ffffff) 60deg 120deg,
-    var(--seg3, #1f3b6d) 120deg 180deg,
-    var(--seg4, #ffffff) 180deg 240deg,
-    var(--seg5, #1f3b6d) 240deg 300deg,
-    var(--seg6, #ffffff) 300deg 360deg
+    #1A365D 0deg 60deg,
+    #ffffff 60deg 120deg,
+    #1A365D 120deg 180deg,
+    #ffffff 180deg 240deg,
+    #1A365D 240deg 300deg,
+    #ffffff 300deg 360deg
   );
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
 }
@@ -209,7 +211,7 @@
   top: 50%;
   transform-origin: center center;
   font-family: "Cormorant Garamond", serif;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: #ffffff;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
@@ -228,7 +230,7 @@
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 1px;
-  color: #111111;
+  color: #000000;
   z-index: 3;
   box-shadow: 0 8px 14px rgba(0, 0, 0, 0.2);
   padding: 10px;
@@ -261,8 +263,8 @@
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.5px;
-  background: var(--btn-bg, #111111);
-  color: var(--btn-text, #ffffff);
+  background: #000000;
+  color: #ffffff;
 }
 
 .vt-wheel-spin-btn:hover {
@@ -286,7 +288,7 @@
   border: 1px solid #d1d5db;
   font-size: 13px;
   background: #ffffff;
-  color: #111111;
+  color: #000000;
 }
 
 .vt-wheel-copy-btn {
@@ -295,7 +297,7 @@
   border: none;
   cursor: pointer;
   font-size: 12px;
-  background: #111111;
+  background: #000000;
   color: #ffffff;
 }
 
@@ -315,8 +317,8 @@
   border: none;
   cursor: pointer;
   z-index: 9998;
-  background: var(--btn-bg, #111111);
-  color: var(--btn-text, #ffffff);
+  background: #000000;
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;

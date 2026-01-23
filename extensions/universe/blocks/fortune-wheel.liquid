@@ -10,22 +10,6 @@
   data-email="{{ customer.email | escape }}"
   data-error-message="{{ block.settings.error_message | escape }}"
   data-success-message="{{ block.settings.success_message | escape }}"
-  style="
-    --overlay-bg: {{ block.settings.overlay_bg }};
-    --modal-bg: {{ block.settings.modal_bg }};
-    --text-color: {{ block.settings.text_color }};
-    --btn-bg: {{ block.settings.button_bg }};
-    --btn-text: {{ block.settings.button_text }};
-    --close-bg: {{ block.settings.close_bg }};
-    --close-text: {{ block.settings.close_text }};
-    --wheel-border: {{ block.settings.wheel_border }};
-    --seg1: {{ block.settings.segment_color_1 }};
-    --seg2: {{ block.settings.segment_color_2 }};
-    --seg3: {{ block.settings.segment_color_3 }};
-    --seg4: {{ block.settings.segment_color_4 }};
-    --seg5: {{ block.settings.segment_color_5 }};
-    --seg6: {{ block.settings.segment_color_6 }};
-  "
 >
   <div class="vt-wheel-modal">
     <button
@@ -207,103 +191,7 @@
       "label": "Картинка під колесом"
     },
 
-    {
-      "type": "header",
-      "content": "Кольори попапа"
-    },
-    {
-      "type": "color",
-      "id": "overlay_bg",
-      "label": "Фон затемнення",
-      "default": "rgba(0,0,0,0.65)"
-    },
-    {
-      "type": "color",
-      "id": "modal_bg",
-      "label": "Фон вікна",
-      "default": "#ffffff"
-    },
-    {
-      "type": "color",
-      "id": "text_color",
-      "label": "Колір тексту",
-      "default": "#111111"
-    },
-    {
-      "type": "color",
-      "id": "button_bg",
-      "label": "Фон кнопки «Крутити»",
-      "default": "#111111"
-    },
-    {
-      "type": "color",
-      "id": "button_text",
-      "label": "Колір тексту кнопки",
-      "default": "#FFFFFF"
-    },
-    {
-      "type": "color",
-      "id": "close_bg",
-      "label": "Фон кнопки закрити",
-      "default": "#111111"
-    },
-    {
-      "type": "color",
-      "id": "close_text",
-      "label": "Колір іконки закрити",
-      "default": "#FFFFFF"
-    },
-    {
-      "type": "color",
-      "id": "wheel_border",
-      "label": "Колір рамки колеса",
-      "default": "#111111"
-    },
 
-    {
-      "type": "header",
-      "content": "Кольори секторів колеса"
-    },
-    {
-      "type": "color",
-      "id": "segment_color_1",
-      "label": "Сектор 1",
-      "default": "#1f3b6d"
-    },
-    {
-      "type": "color",
-      "id": "segment_color_2",
-      "label": "Сектор 2",
-      "default": "#f6f3ed"
-    },
-    {
-      "type": "color",
-      "id": "segment_color_3",
-      "label": "Сектор 3",
-      "default": "#1f3b6d"
-    },
-    {
-      "type": "color",
-      "id": "segment_color_4",
-      "label": "Сектор 4",
-      "default": "#f6f3ed"
-    },
-    {
-      "type": "color",
-      "id": "segment_color_5",
-      "label": "Сектор 5",
-      "default": "#1f3b6d"
-    },
-    {
-      "type": "color",
-      "id": "segment_color_6",
-      "label": "Сектор 6",
-      "default": "#f6f3ed"
-    }
   ]
 }
 {% endschema %}
-
-
-
-

@@ -4,14 +4,7 @@
     return;
   }
   const PROXY_URL = "/apps/vadertek-timer";
-  const DEFAULT_COLORS = [
-    "#f87171",
-    "#fbbf24",
-    "#34d399",
-    "#60a5fa",
-    "#a78bfa",
-    "#f472b6",
-  ];
+  const SEGMENT_COLOR = "#1A365D";
 
   // -----------------------------
   //
@@ -39,13 +32,7 @@
   }
 
   function buildGradient(disc, count) {
-    const style = getComputedStyle(disc);
-    const colors = [];
-    for (let i = 1; i <= 6; i++) {
-      const value = style.getPropertyValue(`--seg${i}`).trim();
-      if (value) colors.push(value);
-    }
-    const palette = colors.length ? colors : DEFAULT_COLORS;
+    const palette = [SEGMENT_COLOR];
     const angle = 360 / count;
     const stops = [];
 
@@ -78,7 +65,7 @@
       label.className = "vt-wheel-label";
       label.textContent = seg && seg.label ? seg.label : "";
       const angleDeg = idx * angle + angle / 4;
-      label.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg) translate(0, -${labelRadius}px) rotate(-${angleDeg}deg)`;
+      label.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg) translate(0, -${labelRadius}px)`;
       labelsRoot.appendChild(label);
     });
 
@@ -139,7 +126,10 @@
 
       function isValidEmail(value) {
         if (!value) return false;
-        return /\S+@\S+\.\S+/.test(value);
+        const email = value.trim();
+        const emailRegex =
+          /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i;
+        return emailRegex.test(email);
       }
 
       function rememberEmail(value) {
