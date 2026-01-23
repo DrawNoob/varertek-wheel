@@ -97,6 +97,7 @@
       const errorEl = overlay.querySelector("[data-vt-wheel-error]");
       const successEl = overlay.querySelector("[data-vt-wheel-success]");
       const centerEl = overlay.querySelector(".vt-wheel-center");
+      const closeLink = overlay.getAttribute("data-close-link") || "";
       const attrEmail = overlay.getAttribute("data-email") || "";
       const errorMessage =
         overlay.getAttribute("data-error-message") ||
@@ -146,6 +147,9 @@
       }
 
       //
+      let hasSpun = false;
+      let hasCopied = false;
+
       function openOverlay() {
         overlay.classList.remove("vt-wheel-overlay--hidden");
         if (trigger) {
@@ -154,6 +158,14 @@
       }
 
       function closeOverlay() {
+        if (hasSpun && !hasCopied) {
+          showError("Скопіюй, щоб не втратити код.");
+          return;
+        }
+        if (closeLink) {
+          window.location.href = closeLink;
+          return;
+        }
         overlay.classList.add("vt-wheel-overlay--hidden");
         if (trigger) {
           trigger.classList.remove("vt-wheel-trigger--hidden");
@@ -166,11 +178,7 @@
         closeBtn.addEventListener("click", closeOverlay);
       }
 
-      overlay.addEventListener("click", function (e) {
-        if (e.target === overlay) {
-          closeOverlay();
-        }
-      });
+      // Close only via the close button.
 
       if (trigger) {
         trigger.addEventListener("click", openOverlay);
@@ -237,6 +245,7 @@
           if (centerEl) {
             // keep existing center content (image/logo)
           }
+          hasSpun = true;
 
           //
           if (emailWrapper) {
@@ -290,9 +299,11 @@
           try {
             await navigator.clipboard.writeText(codeInput.value);
             if (codeCopiedEl) {
-              codeCopiedEl.textContent = "Скопійовано ✓";
+              codeCopiedEl.textContent = "Скопійовано!";
             }
-          } catch (e) {
+            hasCopied = true;
+            hasCopied = true;
+            showError("");
             console.error("Clipboard error", e);
             if (codeCopiedEl) {
               codeCopiedEl.textContent = "Не вдалося скопіювати :(";

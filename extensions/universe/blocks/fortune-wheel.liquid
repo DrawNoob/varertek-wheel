@@ -10,6 +10,7 @@
   data-email="{{ customer.email | escape }}"
   data-error-message="{{ block.settings.error_message | escape }}"
   data-success-message="{{ block.settings.success_message | escape }}"
+  data-close-link="{{ block.settings.close_link | escape }}"
 >
   <div class="vt-wheel-modal">
     <button
@@ -189,6 +190,11 @@
       "type": "image_picker",
       "id": "product_image",
       "label": "Картинка під колесом"
+    },
+    {
+      "type": "url",
+      "id": "close_link",
+      "label": "Посилання для хрестика (необовʼязково)"
     },
 
 
