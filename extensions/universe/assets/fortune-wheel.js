@@ -241,7 +241,7 @@
 
           //
           showError("");
-          showSuccess(`${defaultSuccess} Ваш виграш: ${label}. Код д\u0456йсний 3 доби.`);
+          showSuccess(`${defaultSuccess} Ваш виграш: ${label}. Код дійсний 1 місяць.`);
           if (centerEl) {
             // keep existing center content (image/logo)
           }
@@ -332,6 +332,7 @@
     bootstrap();
   }
 })();
+
 
 
 
