@@ -67,13 +67,16 @@
     labelsRoot.innerHTML = "";
     const count = segments.length;
     const angle = 360 / count;
+    const rect = disc.getBoundingClientRect();
+    const radius = Math.min(rect.width, rect.height) / 2;
+    const labelRadius = Math.max(60, radius - 52);
 
     segments.forEach((seg, idx) => {
       const label = document.createElement("span");
       label.className = "vt-wheel-label";
       label.textContent = seg && seg.label ? seg.label : "";
       const angleDeg = idx * angle + angle / 2;
-      label.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg) translate(0, -72px) rotate(-${angleDeg}deg)`;
+      label.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg) translate(0, -${labelRadius}px) rotate(-${angleDeg}deg)`;
       labelsRoot.appendChild(label);
     });
 
