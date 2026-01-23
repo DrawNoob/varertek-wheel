@@ -302,8 +302,8 @@
               codeCopiedEl.textContent = "Скопійовано!";
             }
             hasCopied = true;
-            hasCopied = true;
             showError("");
+          } catch (e) {
             console.error("Clipboard error", e);
             if (codeCopiedEl) {
               codeCopiedEl.textContent = "Не вдалося скопіювати :(";
