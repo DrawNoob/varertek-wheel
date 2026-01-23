@@ -183,7 +183,7 @@ export async function action({ request }) {
     if (invalidChance) {
       return json({
         ok: false,
-        message: "Вђ?ВђГ§ Вђ?Вђ?ВђГёВђ?Вђ?Вђ?ВђГёвЂ?вЂ? Вђ?Вђ?вЂ?Вђ?Вђ?вЂ? ВђГ»Вђ?Вђ?Вђ?ВђГ± Вђ?Вђ?ВђГ±вЂ? Вў?0.",
+        message: "Некоректні значення шансів. Має бути число >= 0.",
       });
     }
 
@@ -207,7 +207,7 @@ export async function action({ request }) {
 
     for (let i = 0; i < segments.length; i++) {
       acc += segments[i].chance || 0;
-      if (rnd <= acc) {
+      if (rnd < acc) {
         winIndex = i;
         break;
       }
@@ -425,5 +425,6 @@ function json(data, status = 200) {
     headers: { "Content-Type": "application/json" },
   });
 }
+
 
 

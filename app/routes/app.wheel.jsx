@@ -105,7 +105,7 @@ export async function action({ request }) {
   if (invalidChance) {
     return {
       okWheel: false,
-      messageWheel: "Шанс має бути числом ≥ 0.",
+      messageWheel: "Шанс має бути числом >= 0.",
     };
   }
 
@@ -340,3 +340,4 @@ export function ErrorBoundary() {
 }
 
 export const headers = (h) => boundary.headers(h);
+
