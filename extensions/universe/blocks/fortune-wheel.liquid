@@ -44,7 +44,14 @@
       <div class="vt-wheel-layout">
         <div class="vt-wheel-hero">
           <div class="vt-wheel-wrapper">
-            <div class="vt-wheel-pointer"></div>
+          <div class="vt-wheel-pointer">
+            <img
+              src="{{ 'pointer.svg' | asset_url }}"
+              alt="Вказівник"
+              width="40"
+              height="40"
+            >
+          </div>
 
             <div class="vt-wheel-disc">
               <div class="vt-wheel-labels" aria-hidden="true"></div>
@@ -93,7 +100,7 @@
 
           {%- comment -%} Блок з промокодом {%- endcomment -%}
           <div class="vt-wheel-code-wrapper vt-wheel-code-wrapper--hidden">
-            <label class="vt-wheel-code-label">Ваш промокод:</label>
+            <label style="color: black;" class="vt-wheel-code-label">Ваш промокод:</label>
             <div class="vt-wheel-code-row">
               <input
                 type="text"

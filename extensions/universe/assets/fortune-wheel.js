@@ -51,9 +51,11 @@
 
     for (let i = 0; i < count; i++) {
       const start = i * angle;
-      const end = (i + 1) * angle;
+      const mid = start + angle / 2;
+      const end = start + angle;
       const color = palette[i % palette.length];
-      stops.push(`${color} ${start}deg ${end}deg`);
+      stops.push(`${color} ${start}deg ${mid}deg`);
+      stops.push(`#ffffff ${mid}deg ${end}deg`);
     }
 
     disc.style.background = `conic-gradient(${stops.join(", ")})`;
@@ -75,7 +77,7 @@
       const label = document.createElement("span");
       label.className = "vt-wheel-label";
       label.textContent = seg && seg.label ? seg.label : "";
-      const angleDeg = idx * angle + angle / 2;
+      const angleDeg = idx * angle + angle / 4;
       label.style.transform = `translate(-50%, -50%) rotate(${angleDeg}deg) translate(0, -${labelRadius}px) rotate(-${angleDeg}deg)`;
       labelsRoot.appendChild(label);
     });
@@ -243,7 +245,7 @@
           showError("");
           showSuccess(`${defaultSuccess} Ваш виграш: ${label}. Код д\u0456йсний 3 доби.`);
           if (centerEl) {
-            centerEl.textContent = "\uD83C\uDF81";
+            // keep existing center content (image/logo)
           }
 
           //
@@ -263,10 +265,11 @@
 
           //
           //
-          const baseOffset = -segmentAngle / 2; 
           const extraTurns = 3 + Math.floor(Math.random() * 3);
           const targetAngle =
-            extraTurns * 360 + index * segmentAngle + baseOffset;
+            extraTurns * 360 +
+            (segments.length - index) * segmentAngle -
+            segmentAngle / 4;
 
           currentRotation += targetAngle;
 

@@ -97,30 +97,21 @@
 
 .vt-wheel-pointer {
   position: absolute;
-  top: -28px;
+  top: -24px;
   left: 50%;
   transform: translateX(-50%);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 4px solid #111111;
   z-index: 4;
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.25);
+  width: auto;
+  height: 60px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.vt-wheel-pointer::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -18px;
-  transform: translateX(-50%);
-  width: 10px;
-  height: 18px;
-  background: #ffffff;
-  border: 4px solid #111111;
-  border-top: none;
-  border-radius: 0 0 10px 10px;
+.vt-wheel-pointer img {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .vt-wheel-side {
@@ -188,11 +179,11 @@
   position: relative;
   background: conic-gradient(
     var(--seg1, #1f3b6d) 0deg 60deg,
-    var(--seg2, #f6f3ed) 60deg 120deg,
+    var(--seg2, #ffffff) 60deg 120deg,
     var(--seg3, #1f3b6d) 120deg 180deg,
-    var(--seg4, #f6f3ed) 180deg 240deg,
+    var(--seg4, #ffffff) 180deg 240deg,
     var(--seg5, #1f3b6d) 240deg 300deg,
-    var(--seg6, #f6f3ed) 300deg 360deg
+    var(--seg6, #ffffff) 300deg 360deg
   );
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
 }
@@ -200,9 +191,9 @@
 .vt-wheel-disc::after {
   content: "";
   position: absolute;
-  inset: 0px;
+  inset: 0;
   border-radius: 50%;
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 1);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.2);
 }
 
 .vt-wheel-labels {
@@ -221,8 +212,7 @@
   font-size: 16px;
   font-weight: 600;
   color: #ffffff;
-  mix-blend-mode: difference;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
   white-space: nowrap;
 }
 
