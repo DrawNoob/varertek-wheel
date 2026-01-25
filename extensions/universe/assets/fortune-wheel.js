@@ -85,6 +85,7 @@
       const spinBtn = overlay.querySelector(".vt-wheel-spin-btn");
       const disc = overlay.querySelector(".vt-wheel-disc");
       const trigger = document.querySelector(".vt-wheel-trigger-" + uid);
+      const openButtons = document.querySelectorAll(".open-wheel");
       const emailInput = overlay.querySelector(".vt-wheel-email-input");
       const emailWrapper = overlay.querySelector(".vt-wheel-email-wrapper");
   
@@ -172,8 +173,6 @@
         }
       }
 
-      setTimeout(openOverlay, 3000);
-
       if (closeBtn) {
         closeBtn.addEventListener("click", closeOverlay);
       }
@@ -182,6 +181,16 @@
 
       if (trigger) {
         trigger.addEventListener("click", openOverlay);
+      }
+      if (openButtons.length) {
+        openButtons.forEach(function (btn) {
+          btn.addEventListener("click", function (event) {
+            if (event && typeof event.preventDefault === "function") {
+              event.preventDefault();
+            }
+            openOverlay();
+          });
+        });
       }
 
       // -----------------------------
