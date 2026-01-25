@@ -228,7 +228,7 @@ export async function action({ request }) {
       "CHERIE-" + Math.random().toString(36).substring(2, 10)
     ).toUpperCase();
     const nowIso = new Date().toISOString();
-    const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     // -------------------------------------------------------------------
     // 2️⃣ СТВОРЕННЯ ЗНИЖКИ В SHOPIFY ЧЕРЕЗ admin.graphql

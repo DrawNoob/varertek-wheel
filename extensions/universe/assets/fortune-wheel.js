@@ -85,6 +85,7 @@
       const spinBtn = overlay.querySelector(".vt-wheel-spin-btn");
       const disc = overlay.querySelector(".vt-wheel-disc");
       const trigger = document.querySelector(".vt-wheel-trigger-" + uid);
+      const openButtons = document.querySelectorAll(".open-wheel");
       const emailInput = overlay.querySelector(".vt-wheel-email-input");
       const emailWrapper = overlay.querySelector(".vt-wheel-email-wrapper");
   
@@ -97,6 +98,7 @@
       const errorEl = overlay.querySelector("[data-vt-wheel-error]");
       const successEl = overlay.querySelector("[data-vt-wheel-success]");
       const centerEl = overlay.querySelector(".vt-wheel-center");
+      const closeLink = overlay.getAttribute("data-close-link") || "";
       const attrEmail = overlay.getAttribute("data-email") || "";
       const errorMessage =
         overlay.getAttribute("data-error-message") ||
@@ -146,6 +148,9 @@
       }
 
       //
+      let hasSpun = false;
+      let hasCopied = false;
+
       function openOverlay() {
         overlay.classList.remove("vt-wheel-overlay--hidden");
         if (trigger) {
@@ -154,26 +159,38 @@
       }
 
       function closeOverlay() {
+        if (hasSpun && !hasCopied) {
+          showError("Скопіюй, щоб не втратити код.");
+          return;
+        }
+        if (closeLink) {
+          window.location.href = closeLink;
+          return;
+        }
         overlay.classList.add("vt-wheel-overlay--hidden");
         if (trigger) {
           trigger.classList.remove("vt-wheel-trigger--hidden");
         }
       }
 
-      setTimeout(openOverlay, 3000);
-
       if (closeBtn) {
         closeBtn.addEventListener("click", closeOverlay);
       }
 
-      overlay.addEventListener("click", function (e) {
-        if (e.target === overlay) {
-          closeOverlay();
-        }
-      });
+      // Close only via the close button.
 
       if (trigger) {
         trigger.addEventListener("click", openOverlay);
+      }
+      if (openButtons.length) {
+        openButtons.forEach(function (btn) {
+          btn.addEventListener("click", function (event) {
+            if (event && typeof event.preventDefault === "function") {
+              event.preventDefault();
+            }
+            openOverlay();
+          });
+        });
       }
 
       // -----------------------------
@@ -233,10 +250,11 @@
 
           //
           showError("");
-          showSuccess(`${defaultSuccess} Ваш виграш: ${label}. Код д\u0456йсний 3 доби.`);
+          showSuccess(`${defaultSuccess} Ваш виграш: ${label}. Код дійсний 1 місяць.`);
           if (centerEl) {
             // keep existing center content (image/logo)
           }
+          hasSpun = true;
 
           //
           if (emailWrapper) {
@@ -290,8 +308,10 @@
           try {
             await navigator.clipboard.writeText(codeInput.value);
             if (codeCopiedEl) {
-              codeCopiedEl.textContent = "Скопійовано ✓";
+              codeCopiedEl.textContent = "Скопійовано!";
             }
+            hasCopied = true;
+            showError("");
           } catch (e) {
             console.error("Clipboard error", e);
             if (codeCopiedEl) {
@@ -321,6 +341,7 @@
     bootstrap();
   }
 })();
+
 
 
 
