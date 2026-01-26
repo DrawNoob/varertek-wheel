@@ -231,7 +231,53 @@ export async function action({ request }) {
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     // -------------------------------------------------------------------
-    // 2️⃣ СТВОРЕННЯ ЗНИЖКИ В SHOPIFY ЧЕРЕЗ admin.graphql
+    // 2️⃣ ЗНАХОДИМО/СТВОРЮЄМО CUSTOMER ДЛЯ EMAIL
+    // -------------------------------------------------------------------
+    async function getOrCreateCustomerIdByEmail(emailValue) {
+      const emailEscaped = emailValue.replace(/["\\]/g, "\\$&");
+      const searchResp = await admin.graphql(
+        `#graphql
+        query FindCustomerByEmail($query: String!) {
+          customers(first: 1, query: $query) {
+            edges {
+              node { id email }
+            }
+          }
+        }
+      `,
+        {
+          variables: { query: `email:${emailEscaped}` },
+        },
+      );
+      const searchJson = await searchResp.json();
+      const found = searchJson?.data?.customers?.edges?.[0]?.node?.id || null;
+      if (found) return found;
+
+      const createResp = await admin.graphql(
+        `#graphql
+        mutation customerCreate($input: CustomerInput!) {
+          customerCreate(input: $input) {
+            customer { id }
+            userErrors { field message }
+          }
+        }
+      `,
+        {
+          variables: {
+            input: { email: emailValue },
+          },
+        },
+      );
+      const createJson = await createResp.json();
+      const errs = createJson?.data?.customerCreate?.userErrors;
+      if (errs?.length) {
+        throw new Error(errs[0].message || "Customer create failed.");
+      }
+      return createJson?.data?.customerCreate?.customer?.id || null;
+    }
+
+    // -------------------------------------------------------------------
+    // 3️⃣ СТВОРЕННЯ ЗНИЖКИ В SHOPIFY ЧЕРЕЗ admin.graphql
     // -------------------------------------------------------------------
     if (!admin) {
       console.error(
@@ -248,6 +294,13 @@ export async function action({ request }) {
     }
 
     try {
+      const customerId = await getOrCreateCustomerIdByEmail(email);
+      if (!customerId) {
+        return json(
+          { ok: false, message: "Не вдалося створити customer для email." },
+          200,
+        );
+      }
       if (chosen.discountType === "FREESHIP") {
         // ----------------------------
         // FREE SHIPPING
@@ -268,7 +321,7 @@ export async function action({ request }) {
                 code,
                 startsAt: nowIso,
                 endsAt: expiresAt,
-                customerSelection: { all: true },
+                customerSelection: { customers: { add: [customerId] } },
                 destination: { all: true },
                 appliesOncePerCustomer: true,
                 usageLimit: 1,
@@ -320,7 +373,7 @@ export async function action({ request }) {
                 code,
                 startsAt: nowIso,
                 endsAt: expiresAt,
-                customerSelection: { all: true },
+                customerSelection: { customers: { add: [customerId] } },
                 customerGets: {
                   value: isPercent
                     ? { percentage: valueNumber / 100 } // 15% → 0.15
