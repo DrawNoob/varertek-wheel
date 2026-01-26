@@ -31,6 +31,7 @@
   position: absolute;
   top: 12px;
   right: 12px;
+  z-index: 10;
   width: 45px;
   height: 45px;
   border-radius: 4px;
@@ -84,7 +85,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 64px;
+  padding: 32px 64px 0;
 }
 
 .vt-wheel-wrapper {
@@ -239,9 +240,9 @@
 .vt-wheel-product {
   position: absolute;
   left: 50%;
-  bottom: 50px;
+  bottom: 30px;
   transform: translateX(-50%);
-  width: 260px;
+  width: 300px;
   z-index: 2;
 }
 
@@ -351,7 +352,7 @@
   .vt-wheel-hero {
     flex: none;
     width: 100%;
-    padding-bottom: 36px;
+    padding: 24px 20px 12px;
   }
 
   .vt-wheel-wrapper,
@@ -360,17 +361,44 @@
     height: 260px;
   }
 
+  .vt-wheel-wrapper {
+    padding-bottom: 16px;
+  }
+
   .vt-wheel-side {
     width: 100%;
     max-width: none;
+    padding: 6px 20px 24px;
   }
 
   .vt-wheel-product {
-    width: 220px;
-    bottom: -24px;
+    display: none;
   }
 
   .vt-wheel-label {
     font-size: 13px;
+  }
+
+  .vt-wheel-labels {
+    transform: scale(0.9);
+    transform-origin: 50% 50%;
+  }
+
+  .vt-wheel-heading {
+    font-size: 22px;
+  }
+
+  .vt-wheel-subheading {
+    font-size: 13px;
+    padding-bottom: 18px;
+  }
+
+  .vt-wheel-spin-btn {
+    width: 100%;
+  }
+
+  .vt-wheel-close {
+    width: 38px;
+    height: 38px;
   }
 }

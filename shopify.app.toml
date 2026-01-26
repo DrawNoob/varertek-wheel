@@ -18,7 +18,7 @@ api_version = "2025-10"
   uri = "/webhooks/app/scopes_update"
 
 [access_scopes]
-scopes = "read_products,write_products,write_discounts"
+scopes = "read_products,write_products,write_discounts,write_customers"
 optional_scopes = [ ]
 use_legacy_install_flow = false
 
