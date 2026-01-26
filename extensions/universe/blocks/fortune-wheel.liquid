@@ -68,9 +68,12 @@
             {% endif %}
 
             {% if block.settings.subheading != blank %}
-              <p class="vt-wheel-subheading">
-                {{ block.settings.subheading }}
-              </p>
+            <p class="vt-wheel-subheading">
+              {{ block.settings.subheading }}
+            </p>
+            <p class="vt-wheel-subheading" style="font-size: 12px; opacity: 0.75;">
+              Використайте той самий email у checkout, щоб знижка спрацювала.
+            </p>
             {% endif %}
             <label for="vt-wheel-email-{{ uid }}" class="vt-wheel-email-label">
               {{ block.settings.email_label }}

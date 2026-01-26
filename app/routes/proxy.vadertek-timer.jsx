@@ -264,7 +264,7 @@ export async function action({ request }) {
       `,
         {
           variables: {
-            input: { email: emailValue },
+            input: { email: emailValue, tags: ["wheel-customer"] },
           },
         },
       );
