@@ -292,9 +292,12 @@
           const { index, label, code } = data.result;
           const segmentAngle = 360 / segments.length;
 
+          const successMessage = `${defaultSuccess} Ваш виграш: ${label}. Код дійсний 1 місяць.`;
+
           //
           showError("");
-          showSuccess(`${defaultSuccess} Ваш виграш: ${label}. Код дійсний 1 місяць.`);
+          // Показуємо success-повідомлення лише після завершення анімації обертання.
+          showSuccess("");
           if (centerEl) {
             // keep existing center content (image/logo)
           }
@@ -334,10 +337,25 @@
             "transform 4s cubic-bezier(0.23, 1, 0.32, 1)";
           disc.style.transform = `rotate(${currentRotation}deg)`;
 
-          //
-          setTimeout(function () {
+          // Показуємо success-повідомлення після фактичного завершення анімації.
+          let didFinishSpin = false;
+          const finishSpin = function () {
+            if (didFinishSpin) return;
+            didFinishSpin = true;
+            showSuccess(successMessage);
             spinBtn.disabled = false;
-          }, 4200);
+            disc.removeEventListener("transitionend", onTransitionEnd);
+          };
+          const onTransitionEnd = function (event) {
+            if (event && event.propertyName && event.propertyName !== "transform") {
+              return;
+            }
+            finishSpin();
+          };
+          disc.addEventListener("transitionend", onTransitionEnd);
+
+          // Fallback, якщо transitionend не спрацює.
+          setTimeout(finishSpin, 4600);
         } catch (err) {
           console.error("WheelSpin error", err);
           showError("Сталася помилка, спробуйте ще раз.");
