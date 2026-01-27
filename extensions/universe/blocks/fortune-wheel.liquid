@@ -102,12 +102,19 @@
 
           <p class="vt-wheel-error" data-vt-wheel-error></p>
           <p class="vt-wheel-success" data-vt-wheel-success></p>
-
+          <br>
+          <br>
           {% if block.settings.button_label != blank %}
             <button type="button" class="vt-wheel-spin-btn">
               {{ block.settings.button_label }}
             </button>
           {% endif %}
+          <button
+            type="button"
+            class="vt-wheel-spin-btn vt-wheel-use-code-btn vt-wheel-use-code-btn--hidden"
+          >
+            Використати код
+          </button>
         </div>
       </div>
 

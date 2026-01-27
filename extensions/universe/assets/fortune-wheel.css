@@ -272,6 +272,10 @@
   filter: brightness(1.05);
 }
 
+.vt-wheel-use-code-btn--hidden {
+  display: none;
+}
+
 .vt-wheel-code-wrapper--hidden {
   display: none;
 }
@@ -284,8 +288,7 @@
 
 .vt-wheel-code-input {
   flex: 1;
-  padding: 6px 8px;
-  border-radius: 6px;
+  padding: 12px 8px;
   border: 1px solid #d1d5db;
   font-size: 13px;
   background: #ffffff;
@@ -293,8 +296,7 @@
 }
 
 .vt-wheel-copy-btn {
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 12px 10px;
   border: none;
   cursor: pointer;
   font-size: 12px;
