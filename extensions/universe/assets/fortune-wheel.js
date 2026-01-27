@@ -83,6 +83,7 @@
       const uid = overlay.getAttribute("data-uid");
       const closeBtn = overlay.querySelector(".vt-wheel-close");
       const spinBtn = overlay.querySelector(".vt-wheel-spin-btn");
+      const useCodeBtn = overlay.querySelector(".vt-wheel-use-code-btn");
       const disc = overlay.querySelector(".vt-wheel-disc");
       const trigger = document.querySelector(".vt-wheel-trigger-" + uid);
       const openButtons = document.querySelectorAll(".open-wheel");
@@ -103,7 +104,7 @@
       const errorMessage =
         overlay.getAttribute("data-error-message") ||
         "Введ\u0456ть коректний email, щоб крутити колесо.";
-      const usedMessage = "Цей email вже використовував колесо.";
+      const usedMessage = "Цей email ви вже використали. Ось ваш код:";
       const defaultSuccess =
         overlay.getAttribute("data-success-message") ||
         "Ви усп\u0456шно прокрутили колесо!";
@@ -119,6 +120,15 @@
 
       function showSuccess(msg) {
         if (successEl) successEl.textContent = msg || "";
+      }
+
+      function showUseCodeButton() {
+        if (spinBtn) {
+          spinBtn.style.display = "none";
+        }
+        if (useCodeBtn) {
+          useCodeBtn.classList.remove("vt-wheel-use-code-btn--hidden");
+        }
       }
 
       function getEmail() {
@@ -175,6 +185,16 @@
 
       if (closeBtn) {
         closeBtn.addEventListener("click", closeOverlay);
+      }
+
+      if (useCodeBtn) {
+        useCodeBtn.addEventListener("click", function () {
+          if (closeLink) {
+            window.location.href = closeLink;
+            return;
+          }
+          closeOverlay();
+        });
       }
 
       // Close only via the close button.
@@ -236,10 +256,34 @@
           const data = await res.json();
 
           if (!res.ok || !data.ok) {
+            if (data?.existingCode) {
+              const existingLabel = data?.existingLabel ? ` Ваш виграш: ${data.existingLabel}.` : "";
+              showError("");
+              showSuccess(`${usedMessage} ${data.existingCode}.${existingLabel}`);
+              hasSpun = true;
+
+              if (emailWrapper) {
+                emailWrapper.style.display = "none";
+              }
+              if (codeWrapper) {
+                codeWrapper.classList.remove("vt-wheel-code-wrapper--hidden");
+              }
+              if (codeInput) {
+                codeInput.value = data.existingCode;
+              }
+              if (codeCopiedEl) {
+                codeCopiedEl.textContent = "";
+              }
+
+              showUseCodeButton();
+              spinBtn.disabled = false;
+              return;
+            }
+
             const msg =
               data?.message === "Цей email вже використовував колесо."
                 ? usedMessage
-                : data?.message || "Сталася помилка, спробуйте ще раз."
+                : data?.message || "Сталася помилка, спробуйте ще раз.";
             showError(msg);
             spinBtn.disabled = false;
             return;
@@ -270,6 +314,7 @@
             codeCopiedEl.textContent = "";
           }
 
+          showUseCodeButton();
 
           //
           //

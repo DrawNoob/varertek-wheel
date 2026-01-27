@@ -155,6 +155,8 @@ export async function action({ request }) {
       return json({
         ok: false,
         message: "Цей email вже використовував колесо.",
+        existingCode: existing.discountCode || null,
+        existingLabel: existing.answer || null,
       });
     }
 

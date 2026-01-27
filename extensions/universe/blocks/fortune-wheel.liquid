@@ -62,7 +62,7 @@
           {%- comment -%} Блок з email (опційний) {%- endcomment -%}
           <div class="vt-wheel-email-wrapper">
             {% if block.settings.heading != blank %}
-              <h2 class="vt-wheel-heading">
+              <h2 class="vt-wheel-heading font-playfair">
                 {{ block.settings.heading }}
               </h2>
             {% endif %}
@@ -70,9 +70,6 @@
             {% if block.settings.subheading != blank %}
             <p class="vt-wheel-subheading">
               {{ block.settings.subheading }}
-            </p>
-            <p class="vt-wheel-subheading" style="font-size: 12px; opacity: 0.75;">
-              Використайте той самий email у checkout, щоб знижка спрацювала.
             </p>
             {% endif %}
             <label for="vt-wheel-email-{{ uid }}" class="vt-wheel-email-label">
@@ -88,7 +85,10 @@
 
           {%- comment -%} Блок з промокодом {%- endcomment -%}
           <div class="vt-wheel-code-wrapper vt-wheel-code-wrapper--hidden">
-            <label style="color: black;" class="vt-wheel-code-label">Ваш промокод:</label>
+            <div class="vt-wheel-code-header">
+              <label style="color: black;" class="vt-wheel-code-label">Ваш промокод:</label>
+              <p class="vt-wheel-code-copied"></p>
+            </div>
             <div class="vt-wheel-code-row">
               <input
                 type="text"
@@ -97,17 +97,24 @@
               >
               <button type="button" class="vt-wheel-copy-btn">Скопіювати</button>
             </div>
-            <p class="vt-wheel-code-copied"></p>
           </div>
 
           <p class="vt-wheel-error" data-vt-wheel-error></p>
           <p class="vt-wheel-success" data-vt-wheel-success></p>
-
           {% if block.settings.button_label != blank %}
             <button type="button" class="vt-wheel-spin-btn">
               {{ block.settings.button_label }}
             </button>
           {% endif %}
+          <button
+            type="button"
+            class="vt-wheel-spin-btn vt-wheel-use-code-btn vt-wheel-use-code-btn--hidden"
+          >
+            Використати код
+          </button>
+          <p class="vt-wheel-checkout-note">
+            Використайте той самий email у checkout, щоб знижка спрацювала.
+          </p>
         </div>
       </div>
 
