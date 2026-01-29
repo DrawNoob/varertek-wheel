@@ -416,6 +416,65 @@ export async function action({ request }) {
             200,
           );
         }
+      } else if (chosen.discountType === "FIXED") {
+        // ----------------------------
+        // FIXED amount (code discount)
+        // ----------------------------
+        const valueNumber = Number(chosen.discountValue || 0);
+
+        const response = await admin.graphql(
+          `#graphql
+          mutation discountCodeBasicCreate($discount: DiscountCodeBasicInput!) {
+            discountCodeBasicCreate(basicCodeDiscount: $discount) {
+              codeDiscountNode { id }
+              userErrors { field code message }
+            }
+          }
+        `,
+          {
+            variables: {
+              discount: {
+                title: chosen.label || "Wheel discount",
+                code,
+                startsAt: nowIso,
+                endsAt: expiresAt,
+                customerSelection: { customers: { add: [customerId] } },
+                customerGets: {
+                  value: {
+                    discountAmount: {
+                      amount: String(valueNumber),
+                      appliesOnEachItem: false,
+                    },
+                  },
+                  items: { collections: { add: [collectionId] } },
+                },
+                appliesOncePerCustomer: true,
+                usageLimit: 1,
+              },
+            },
+          },
+        );
+
+        const jsonResp = await response.json();
+        console.log(
+          "Fixed discount GraphQL resp:",
+          JSON.stringify(jsonResp, null, 2),
+        );
+        const errs =
+          jsonResp?.data?.discountCodeBasicCreate?.userErrors;
+
+        if (errs?.length) {
+          console.error("Discount errors:", errs);
+          return json(
+            {
+              ok: false,
+              message: `Помилка створення знижки: ${
+                errs[0].message || "unknown error"
+              }`,
+            },
+            200,
+          );
+        }
       } else {
         // ----------------------------
         // PERCENT (limit to 1 item from a collection)
