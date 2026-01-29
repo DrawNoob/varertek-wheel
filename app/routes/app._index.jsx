@@ -1,10 +1,10 @@
 ﻿// app._index.jsx
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { authenticate, apiVersion } from "../shopify.server";
+import shopify, { authenticate, apiVersion } from "../shopify.server";
 
 export const loader = async ({ request }) => {
-  await authenticate.admin(request);
+  const { session } = await authenticate.admin(request);
 
   const meta = {
     appName: "Countdown Timer — VADERTEK corp.",
@@ -17,11 +17,16 @@ export const loader = async ({ request }) => {
     buildTime: new Date().toISOString(),
   };
 
-  return { meta };
+  const embedStatus = {
+    analytics: "SOON",
+    wheel: "SOON",
+  };
+
+  return { meta, embedStatus };
 };
 
 export default function Index() {
-  const { meta } = useLoaderData();
+  const { meta, embedStatus } = useLoaderData();
 
   return (
     <s-page heading={meta.appName}>
@@ -70,6 +75,24 @@ export default function Index() {
             </s-paragraph>
             <s-paragraph>
               <b>Build time:</b> {meta.buildTime}
+            </s-paragraph>
+          </s-stack>
+        </s-box>
+      </s-section>
+
+      <s-section heading="Статус застосунку">
+        <s-box
+          padding="base"
+          borderWidth="base"
+          borderRadius="base"
+          background="subdued"
+        >
+          <s-stack direction="block" gap="tight">
+            <s-paragraph>
+              <b>Vadertek Analytics:</b> {embedStatus.analytics}
+            </s-paragraph>
+            <s-paragraph>
+              <b>Vadertek Wheel:</b> {embedStatus.wheel}
             </s-paragraph>
           </s-stack>
         </s-box>
