@@ -286,6 +286,11 @@
   display: none;
 }
 
+.vt-wheel-use-code-btn--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .vt-wheel-code-wrapper--hidden {
   display: none;
 }

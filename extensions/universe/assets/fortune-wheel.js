@@ -122,12 +122,19 @@
         if (successEl) successEl.textContent = msg || "";
       }
 
-      function showUseCodeButton() {
+      function setUseCodeButtonState(enabled) {
+        if (!useCodeBtn) return;
+        useCodeBtn.setAttribute("aria-disabled", enabled ? "false" : "true");
+        useCodeBtn.classList.toggle("vt-wheel-use-code-btn--disabled", !enabled);
+      }
+
+      function showUseCodeButton(enabled) {
         if (spinBtn) {
           spinBtn.style.display = "none";
         }
         if (useCodeBtn) {
           useCodeBtn.classList.remove("vt-wheel-use-code-btn--hidden");
+          setUseCodeButtonState(Boolean(enabled));
         }
       }
 
@@ -171,16 +178,17 @@
       function closeOverlay() {
         if (hasSpun && !hasCopied) {
           showError("Скопіюй, щоб не втратити код.");
-          return;
+          return false;
         }
         if (closeLink) {
           window.location.href = closeLink;
-          return;
+          return true;
         }
         overlay.classList.add("vt-wheel-overlay--hidden");
         if (trigger) {
           trigger.classList.remove("vt-wheel-trigger--hidden");
         }
+        return true;
       }
 
       if (closeBtn) {
@@ -189,8 +197,9 @@
 
       if (useCodeBtn) {
         useCodeBtn.addEventListener("click", function () {
-          if (closeLink) {
-            window.location.href = closeLink;
+          if (useCodeBtn.classList.contains("vt-wheel-use-code-btn--disabled")) {
+            showSuccess("");
+            showError("Скопіюй, щоб не втратити код.");
             return;
           }
           closeOverlay();
@@ -275,7 +284,7 @@
                 codeCopiedEl.textContent = "";
               }
 
-              showUseCodeButton();
+              showUseCodeButton(false);
               spinBtn.disabled = false;
               return;
             }
@@ -292,9 +301,12 @@
           const { index, label, code } = data.result;
           const segmentAngle = 360 / segments.length;
 
+          const successMessage = `${defaultSuccess} Ваш виграш: ${label}. Код дійсний 1 місяць.`;
+
           //
           showError("");
-          showSuccess(`${defaultSuccess} Ваш виграш: ${label}. Код дійсний 1 місяць.`);
+          // Показуємо success-повідомлення лише після завершення анімації обертання.
+          showSuccess("");
           if (centerEl) {
             // keep existing center content (image/logo)
           }
@@ -305,16 +317,16 @@
             emailWrapper.style.display = "none";
           }
           if (codeWrapper) {
-            codeWrapper.classList.remove("vt-wheel-code-wrapper--hidden");
+            codeWrapper.classList.add("vt-wheel-code-wrapper--hidden");
           }
           if (codeInput) {
-            codeInput.value = code;
+            codeInput.value = "";
           }
           if (codeCopiedEl) {
             codeCopiedEl.textContent = "";
           }
 
-          showUseCodeButton();
+          showUseCodeButton(false);
 
           //
           //
@@ -334,10 +346,35 @@
             "transform 4s cubic-bezier(0.23, 1, 0.32, 1)";
           disc.style.transform = `rotate(${currentRotation}deg)`;
 
-          //
-          setTimeout(function () {
+          // Показуємо success-повідомлення після фактичного завершення анімації.
+          let didFinishSpin = false;
+          const finishSpin = function () {
+            if (didFinishSpin) return;
+            didFinishSpin = true;
+            if (codeWrapper) {
+              codeWrapper.classList.remove("vt-wheel-code-wrapper--hidden");
+            }
+            if (codeInput) {
+              codeInput.value = code;
+            }
+            if (codeCopiedEl) {
+              codeCopiedEl.textContent = "";
+            }
+            showUseCodeButton(false);
+            showSuccess(successMessage);
             spinBtn.disabled = false;
-          }, 4200);
+            disc.removeEventListener("transitionend", onTransitionEnd);
+          };
+          const onTransitionEnd = function (event) {
+            if (event && event.propertyName && event.propertyName !== "transform") {
+              return;
+            }
+            finishSpin();
+          };
+          disc.addEventListener("transitionend", onTransitionEnd);
+
+          // Fallback, якщо transitionend не спрацює.
+          setTimeout(finishSpin, 4600);
         } catch (err) {
           console.error("WheelSpin error", err);
           showError("Сталася помилка, спробуйте ще раз.");
@@ -356,6 +393,7 @@
               codeCopiedEl.textContent = "Скопійовано!";
             }
             hasCopied = true;
+            setUseCodeButtonState(true);
             showError("");
           } catch (e) {
             console.error("Clipboard error", e);
