@@ -310,6 +310,42 @@ export async function action({ request }) {
       return data?.data?.collectionByHandle?.id || null;
     }
 
+    async function setCustomerWheelMetafields(customerId, prizeLabel, discountCode) {
+      if (!customerId) return;
+      const mutation = `#graphql
+        mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields { id key namespace }
+            userErrors { field message }
+          }
+        }
+      `;
+      const variables = {
+        metafields: [
+          {
+            ownerId: customerId,
+            namespace: "custom",
+            key: "wheel_prize_label",
+            type: "single_line_text_field",
+            value: String(prizeLabel || ""),
+          },
+          {
+            ownerId: customerId,
+            namespace: "custom",
+            key: "wheel_discount_code",
+            type: "single_line_text_field",
+            value: String(discountCode || ""),
+          },
+        ],
+      };
+      const resp = await admin.graphql(mutation, { variables });
+      const jsonResp = await resp.json();
+      const errs = jsonResp?.data?.metafieldsSet?.userErrors;
+      if (errs?.length) {
+        console.error("MetafieldsSet errors:", errs);
+      }
+    }
+
     try {
       const customerId = await getOrCreateCustomerIdByEmail(email);
       if (!customerId) {
@@ -448,6 +484,8 @@ export async function action({ request }) {
           );
         }
       }
+
+      await setCustomerWheelMetafields(customerId, chosen.label, code);
     } catch (err) {
       console.error("Shopify discount create ERROR:", err);
       return json(
