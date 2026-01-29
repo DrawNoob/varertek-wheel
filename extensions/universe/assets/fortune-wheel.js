@@ -88,6 +88,7 @@
       const trigger = document.querySelector(".vt-wheel-trigger-" + uid);
       const openButtons = document.querySelectorAll(".open-wheel");
       const emailInput = overlay.querySelector(".vt-wheel-email-input");
+      const honeypotInput = overlay.querySelector(".vt-wheel-hp-input");
       const emailWrapper = overlay.querySelector(".vt-wheel-email-wrapper");
   
       //
@@ -259,6 +260,7 @@
               intent: "wheelSpin",
               email,
               device_type: deviceType,
+              hp: honeypotInput ? honeypotInput.value : "",
             }),
           });
 

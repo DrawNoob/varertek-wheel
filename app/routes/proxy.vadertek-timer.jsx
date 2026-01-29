@@ -132,6 +132,10 @@ export async function action({ request }) {
   // 1️⃣ НОВИЙ INTENT → КОЛЕСО ФОРТУНИ (створення знижки)
   // -------------------------------------------------------------------
   if (intent === "wheelSpin") {
+    const hp = String(body.hp || "").trim();
+    if (hp) {
+      return json({ ok: false, message: "Підозріла активність." }, 200);
+    }
     const email = body.email?.trim() || null;
     const emailRegex =
       /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,63}$/i;
