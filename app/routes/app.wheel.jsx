@@ -136,6 +136,24 @@ export async function action({ request }) {
 export default function WheelPage() {
   const { wheelSetting, rows } = useLoaderData();
   const actionData = useActionData();
+  const handleExport = async () => {
+    const qs = window.location.search || "";
+    const url = `/app/wheel/export${qs}`;
+    const res = await fetch(url, { credentials: "include" });
+    if (!res.ok) {
+      console.error("Export CSV failed", res.status);
+      return;
+    }
+    const blob = await res.blob();
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
+    const date = new Date().toISOString().slice(0, 10);
+    link.download = `wheel-wins-${date}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(link.href);
+  };
 
   return (
     <s-page heading="Колесо фортуни">
@@ -291,44 +309,79 @@ export default function WheelPage() {
                 marginTop: 20,
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "space-between",
                 gap: "16px",
               }}
             >
-              <button
-                type="submit"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "6px 14px",
-                  borderRadius: "8px",
-                  border: "none",
-                  cursor: "pointer",
-                  backgroundColor: "#008060",
-                  color: "#ffffff",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                }}
-              >
-                Зберегти налаштування колеса
-              </button>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <button
+                  type="submit"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "6px 14px",
+                    borderRadius: "8px",
+                    border: "none",
+                    cursor: "pointer",
+                    backgroundColor: "#008060",
+                    color: "#ffffff",
+                    fontSize: "14px",
+                    fontWeight: 500,
+                  }}
+                >
+                  Зберегти налаштування колеса
+                </button>
 
-              {actionData?.okWheel && (
-                <s-text as="span" variant="bodySm" tone="success">
-                  Збережено.
-                </s-text>
-              )}
-              {actionData?.okWheel === false && (
-                <s-text as="span" variant="bodySm" tone="critical">
-                  {actionData.messageWheel || "Помилка збереження колеса."}
-                </s-text>
-              )}
+                {actionData?.okWheel && (
+                  <s-text as="span" variant="bodySm" tone="success">
+                    Збережено.
+                  </s-text>
+                )}
+                {actionData?.okWheel === false && (
+                  <s-text as="span" variant="bodySm" tone="critical">
+                    {actionData.messageWheel || "Помилка збереження колеса."}
+                  </s-text>
+                )}
+              </div>
             </div>
           </Form>
+
         </s-card-section>
       </s-section>
 
-      <s-section heading="Відповіді та знижки">
+      <s-section>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "12px",
+          }}
+        >
+          <h2 style={{ fontSize: "18px", fontWeight: 600, margin: 0 }}>
+            Відповіді та знижки
+          </h2>
+          <button
+            type="button"
+            onClick={handleExport}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "6px 14px",
+              borderRadius: "8px",
+              border: "1px solid #111827",
+              cursor: "pointer",
+              backgroundColor: "#ffffff",
+              color: "#111827",
+              fontSize: "14px",
+              fontWeight: 500,
+            }}
+          >
+            Export CSV
+          </button>
+        </div>
         <CountdownAnswersPage rows={rows} />
       </s-section>
     </s-page>
