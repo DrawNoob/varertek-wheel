@@ -122,12 +122,19 @@
         if (successEl) successEl.textContent = msg || "";
       }
 
-      function showUseCodeButton() {
+      function setUseCodeButtonState(enabled) {
+        if (!useCodeBtn) return;
+        useCodeBtn.setAttribute("aria-disabled", enabled ? "false" : "true");
+        useCodeBtn.classList.toggle("vt-wheel-use-code-btn--disabled", !enabled);
+      }
+
+      function showUseCodeButton(enabled) {
         if (spinBtn) {
           spinBtn.style.display = "none";
         }
         if (useCodeBtn) {
           useCodeBtn.classList.remove("vt-wheel-use-code-btn--hidden");
+          setUseCodeButtonState(Boolean(enabled));
         }
       }
 
@@ -171,16 +178,17 @@
       function closeOverlay() {
         if (hasSpun && !hasCopied) {
           showError("Скопіюй, щоб не втратити код.");
-          return;
+          return false;
         }
         if (closeLink) {
           window.location.href = closeLink;
-          return;
+          return true;
         }
         overlay.classList.add("vt-wheel-overlay--hidden");
         if (trigger) {
           trigger.classList.remove("vt-wheel-trigger--hidden");
         }
+        return true;
       }
 
       if (closeBtn) {
@@ -189,8 +197,9 @@
 
       if (useCodeBtn) {
         useCodeBtn.addEventListener("click", function () {
-          if (closeLink) {
-            window.location.href = closeLink;
+          if (useCodeBtn.classList.contains("vt-wheel-use-code-btn--disabled")) {
+            showSuccess("");
+            showError("Скопіюй, щоб не втратити код.");
             return;
           }
           closeOverlay();
@@ -275,7 +284,7 @@
                 codeCopiedEl.textContent = "";
               }
 
-              showUseCodeButton();
+              showUseCodeButton(false);
               spinBtn.disabled = false;
               return;
             }
@@ -308,16 +317,16 @@
             emailWrapper.style.display = "none";
           }
           if (codeWrapper) {
-            codeWrapper.classList.remove("vt-wheel-code-wrapper--hidden");
+            codeWrapper.classList.add("vt-wheel-code-wrapper--hidden");
           }
           if (codeInput) {
-            codeInput.value = code;
+            codeInput.value = "";
           }
           if (codeCopiedEl) {
             codeCopiedEl.textContent = "";
           }
 
-          showUseCodeButton();
+          showUseCodeButton(false);
 
           //
           //
@@ -342,6 +351,16 @@
           const finishSpin = function () {
             if (didFinishSpin) return;
             didFinishSpin = true;
+            if (codeWrapper) {
+              codeWrapper.classList.remove("vt-wheel-code-wrapper--hidden");
+            }
+            if (codeInput) {
+              codeInput.value = code;
+            }
+            if (codeCopiedEl) {
+              codeCopiedEl.textContent = "";
+            }
+            showUseCodeButton(false);
             showSuccess(successMessage);
             spinBtn.disabled = false;
             disc.removeEventListener("transitionend", onTransitionEnd);
@@ -374,6 +393,7 @@
               codeCopiedEl.textContent = "Скопійовано!";
             }
             hasCopied = true;
+            setUseCodeButtonState(true);
             showError("");
           } catch (e) {
             console.error("Clipboard error", e);
