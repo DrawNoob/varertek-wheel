@@ -1,7 +1,7 @@
 ﻿// app._index.jsx
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import shopify, { authenticate, apiVersion } from "../shopify.server";
+import { authenticate, apiVersion } from "../shopify.server";
 
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
