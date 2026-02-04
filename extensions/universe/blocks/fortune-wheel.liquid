@@ -11,6 +11,14 @@
   data-error-message="{{ block.settings.error_message | escape }}"
   data-success-message="{{ block.settings.success_message | escape }}"
   data-close-link="{{ block.settings.close_link | escape }}"
+  data-used-message="{{ block.settings.used_message | escape }}"
+  data-copy-required-message="{{ block.settings.copy_required_message | escape }}"
+  data-wheel-not-configured-message="{{ block.settings.wheel_not_configured_message | escape }}"
+  data-generic-error-message="{{ block.settings.generic_error_message | escape }}"
+  data-success-win-template="{{ block.settings.success_win_template | escape }}"
+  data-existing-win-template="{{ block.settings.existing_win_template | escape }}"
+  data-copy-success-message="{{ block.settings.copy_success_message | escape }}"
+  data-copy-fail-message="{{ block.settings.copy_fail_message | escape }}"
 >
   <div class="vt-wheel-modal">
     <button
@@ -22,7 +30,7 @@
         width="45"
         height="45"
         src="{{ 'close-icon.svg' | asset_url }}" 
-        alt="Icon close">
+        alt="Закрити">
     </button>
 
     <div class="vt-wheel-content">
@@ -41,7 +49,7 @@
             <div class="vt-wheel-disc">
               <div class="vt-wheel-labels" aria-hidden="true"></div>
               <div class="vt-wheel-center">
-                <img src="{{ 'logo.png' |  asset_url }}" alt="">
+                <img src="{{ 'logo.png' |  asset_url }}" alt="Логотип">
               </div>
             </div>
           </div>
@@ -51,7 +59,7 @@
               <img
                 class="vt-wheel-product-image"
                 src="{{ block.settings.product_image | image_url }}"
-                alt="image"
+                alt="Зображення товару"
                 loading="lazy"
               >
             {% endif %}
@@ -95,7 +103,7 @@
           {%- comment -%} Блок з промокодом {%- endcomment -%}
           <div class="vt-wheel-code-wrapper vt-wheel-code-wrapper--hidden">
             <div class="vt-wheel-code-header">
-              <label style="color: black;" class="vt-wheel-code-label">Ваш промокод:</label>
+              <label style="color: black;" class="vt-wheel-code-label">{{ block.settings.code_label }}</label>
               <p class="vt-wheel-code-copied"></p>
             </div>
             <div class="vt-wheel-code-row">
@@ -104,7 +112,7 @@
                 class="vt-wheel-code-input"
                 readonly
               >
-              <button type="button" class="vt-wheel-copy-btn">Скопіювати</button>
+              <button type="button" class="vt-wheel-copy-btn">{{ block.settings.copy_button_label }}</button>
             </div>
           </div>
 
@@ -119,10 +127,10 @@
             type="button"
             class="vt-wheel-spin-btn vt-wheel-use-code-btn vt-wheel-use-code-btn--hidden"
           >
-            Використати код
+            {{ block.settings.use_code_button_label }}
           </button>
           <p class="vt-wheel-checkout-note">
-            Використайте той самий email у checkout, щоб знижка спрацювала.
+            {{ block.settings.checkout_note }}
           </p>
         </div>
       </div>
@@ -137,9 +145,9 @@
 <button
   type="button"
   class="vt-wheel-trigger vt-wheel-trigger--hidden vt-wheel-trigger-{{ uid }}"
-  aria-label="Відкрити колесо фортуни"
+  aria-label="Відкрити колесо"
 >
-  GO
+  {{ block.settings.trigger_label }}
 </button>
 
 <script src="{{ 'fortune-wheel.js' | asset_url }}" defer></script>
@@ -152,68 +160,150 @@
   "settings": [
     {
       "type": "header",
-      "content": "Тексти"
+      "content": "1) Popup: Основне"
     },
     {
       "type": "text",
       "id": "heading",
-      "label": "Заголовок",
+      "label": "Popup • Заголовок",
       "default": "Крути колесо фортуни!"
     },
     {
       "type": "text",
       "id": "subheading",
-      "label": "Підзаголовок",
+      "label": "Popup • Підзаголовок",
       "default": "Отримай свій шанс на подарунок або знижку."
     },
     {
       "type": "text",
       "id": "button_label",
-      "label": "Текст кнопки",
+      "label": "Popup • Кнопка 'Крутити'",
       "default": "Крутити колесо"
+    },
+    {
+      "type": "text",
+      "id": "use_code_button_label",
+      "label": "Popup • Кнопка 'Використати код'",
+      "default": "Використати код"
+    },
+    {
+      "type": "text",
+      "id": "code_label",
+      "label": "Підпис біля промокоду",
+      "default": "Ваш промокод:"
+    },
+    {
+      "type": "text",
+      "id": "copy_button_label",
+      "label": "Текст кнопки копіювання",
+      "default": "Скопіювати"
+    },
+    {
+      "type": "text",
+      "id": "checkout_note",
+      "label": "Popup • Підказка під кнопкою",
+      "default": "Використайте той самий email у checkout, щоб знижка спрацювала."
     },
 
     {
       "type": "header",
-      "content": "Email"
+      "content": "2) Email: Поле і валідація"
     },
     {
       "type": "text",
       "id": "email_label",
-      "label": "Підпис до поля email",
+      "label": "Email • Підпис поля",
       "default": "Вкажи свій email, щоб отримати подарунок:"
     },
     {
       "type": "text",
       "id": "email_placeholder",
-      "label": "Placeholder email",
+      "label": "Email • Placeholder",
       "default": "you@example.com"
     },
     {
       "type": "text",
       "id": "error_message",
-      "label": "Текст помилки при невалідному email",
+      "label": "Email • Помилка невалідного email",
       "default": "Введіть коректний email, щоб крутити колесо."
     },
     {
       "type": "text",
       "id": "success_message",
-      "label": "Повідомлення після успішного крутіння",
+      "label": "Email • Базовий success після спіну",
       "default": "Ви успішно прокрутили колесо!"
     },
     {
       "type": "header",
-      "content": "Зображення"
+      "content": "3) Системні повідомлення"
+    },
+    {
+      "type": "text",
+      "id": "used_message",
+      "label": "System • Email вже використаний",
+      "default": "Цей email ви вже використали. Ось ваш код:"
+    },
+    {
+      "type": "text",
+      "id": "copy_required_message",
+      "label": "System • Потрібно спочатку скопіювати код",
+      "default": "Скопіюй, щоб не втратити код."
+    },
+    {
+      "type": "text",
+      "id": "wheel_not_configured_message",
+      "label": "System • Колесо не налаштоване",
+      "default": "Колесо не налаштоване."
+    },
+    {
+      "type": "text",
+      "id": "generic_error_message",
+      "label": "System • Універсальна помилка",
+      "default": "Сталася помилка, спробуйте ще раз."
+    },
+    {
+      "type": "text",
+      "id": "success_win_template",
+      "label": "Template • Успішний виграш ({success_message}, {label})",
+      "default": "{success_message} Ваш виграш: {label}. Код дійсний 1 місяць."
+    },
+    {
+      "type": "text",
+      "id": "existing_win_template",
+      "label": "Template • Існуючий виграш ({label})",
+      "default": "Ваш виграш: {label}."
+    },
+    {
+      "type": "text",
+      "id": "copy_success_message",
+      "label": "System • Копіювання успішне",
+      "default": "Скопійовано!"
+    },
+    {
+      "type": "text",
+      "id": "copy_fail_message",
+      "label": "System • Копіювання не вдалося",
+      "default": "Не вдалося скопіювати :("
+    },
+    {
+      "type": "header",
+      "content": "4) Trigger, Media і дії"
+    },
+    {
+      "type": "text",
+      "id": "trigger_label",
+      "label": "Trigger • Текст кнопки",
+      "default": "GO"
     },
     {
       "type": "image_picker",
       "id": "product_image",
-      "label": "Картинка під колесом"
+      "label": "Media • Картинка під колесом"
     },
     {
       "type": "url",
       "id": "close_link",
-      "label": "Посилання для хрестика (необовʼязково)"
+      "label": "Action • Посилання для кнопки закриття (необовʼязково)"
     }
   ]
 }
