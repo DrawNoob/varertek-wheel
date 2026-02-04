@@ -267,7 +267,128 @@ export async function action({ request }) {
       return data?.data?.collectionByHandle?.id || null;
     };
 
+    const getOrCreateCustomerIdByEmail = async (emailValue) => {
+      const emailEscaped = emailValue.replace(/["\\]/g, "\\$&");
+      const searchResp = await admin.graphql(
+        `#graphql
+        query FindCustomerByEmail($query: String!) {
+          customers(first: 1, query: $query) {
+            edges {
+              node { id }
+            }
+          }
+        }
+      `,
+        {
+          variables: { query: `email:${emailEscaped}` },
+        },
+      );
+      const searchJson = await searchResp.json();
+      const foundCustomerId =
+        searchJson?.data?.customers?.edges?.[0]?.node?.id || null;
+
+      if (foundCustomerId) {
+        const addTagResp = await admin.graphql(
+          `#graphql
+          mutation tagsAdd($id: ID!, $tags: [String!]!) {
+            tagsAdd(id: $id, tags: $tags) {
+              node { id }
+              userErrors { field message }
+            }
+          }
+        `,
+          {
+            variables: {
+              id: foundCustomerId,
+              tags: ["wheel-customer"],
+            },
+          },
+        );
+        const addTagJson = await addTagResp.json();
+        const addTagErrs = addTagJson?.data?.tagsAdd?.userErrors;
+        if (addTagErrs?.length) {
+          console.error("tagsAdd errors:", addTagErrs);
+        }
+        return foundCustomerId;
+      }
+
+      const createResp = await admin.graphql(
+        `#graphql
+        mutation customerCreate($input: CustomerInput!) {
+          customerCreate(input: $input) {
+            customer { id }
+            userErrors { field message }
+          }
+        }
+      `,
+        {
+          variables: {
+            input: { email: emailValue, tags: ["wheel-customer"] },
+          },
+        },
+      );
+      const createJson = await createResp.json();
+      const errs = createJson?.data?.customerCreate?.userErrors;
+      if (errs?.length) {
+        throw new Error(errs[0].message || "Customer create failed.");
+      }
+      return createJson?.data?.customerCreate?.customer?.id || null;
+    };
+
+    const setCustomerWheelMetafields = async (
+      customerId,
+      prizeLabel,
+      discountCode,
+    ) => {
+      if (!customerId) return;
+
+      const resp = await admin.graphql(
+        `#graphql
+        mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
+          metafieldsSet(metafields: $metafields) {
+            metafields { id key namespace }
+            userErrors { field message }
+          }
+        }
+      `,
+        {
+          variables: {
+            metafields: [
+              {
+                ownerId: customerId,
+                namespace: "custom",
+                key: "wheel_prize_label",
+                type: "single_line_text_field",
+                value: String(prizeLabel || ""),
+              },
+              {
+                ownerId: customerId,
+                namespace: "custom",
+                key: "wheel_discount_code",
+                type: "single_line_text_field",
+                value: String(discountCode || ""),
+              },
+            ],
+          },
+        },
+      );
+
+      const jsonResp = await resp.json();
+      const errs = jsonResp?.data?.metafieldsSet?.userErrors;
+      if (errs?.length) {
+        console.error("MetafieldsSet errors:", errs);
+      }
+    };
+
     try {
+      const customerId = await getOrCreateCustomerIdByEmail(email);
+      if (!customerId) {
+        return json(
+          { ok: false, message: "Не вдалося створити customer для email." },
+          200,
+        );
+      }
+
       // CHANGE POINT: HANDLE КОЛЕКЦІЇ ДЛЯ ЗНИЖКИ
       const collectionHandle = "sets-cherie";
       const collectionId = await getCollectionIdByHandle(collectionHandle);
@@ -307,7 +428,7 @@ export async function action({ request }) {
                 title: chosen.label || "Wheel discount",
                 code,
                 startsAt: nowIso,
-                customerSelection: { all: true },
+                customerSelection: { customers: { add: [customerId] } },
                 customerGets: customerGetsInput,
                 combinesWith: {
                   productDiscounts: true,
@@ -370,6 +491,8 @@ export async function action({ request }) {
           200,
         );
       }
+
+      await setCustomerWheelMetafields(customerId, chosen.label, code);
     } catch (err) {
       console.error("Shopify discount create ERROR:", err);
       return json(
