@@ -234,56 +234,9 @@ export async function action({ request }) {
       "CHERIE-" + Math.random().toString(36).substring(2, 10)
     ).toUpperCase();
     const nowIso = new Date().toISOString();
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     // -------------------------------------------------------------------
-    // 2️⃣ ЗНАХОДИМО/СТВОРЮЄМО CUSTOMER ДЛЯ EMAIL
-    // -------------------------------------------------------------------
-    async function getOrCreateCustomerIdByEmail(emailValue) {
-      const emailEscaped = emailValue.replace(/["\\]/g, "\\$&");
-      const searchResp = await admin.graphql(
-        `#graphql
-        query FindCustomerByEmail($query: String!) {
-          customers(first: 1, query: $query) {
-            edges {
-              node { id email }
-            }
-          }
-        }
-      `,
-        {
-          variables: { query: `email:${emailEscaped}` },
-        },
-      );
-      const searchJson = await searchResp.json();
-      const found = searchJson?.data?.customers?.edges?.[0]?.node?.id || null;
-      if (found) return found;
-
-      const createResp = await admin.graphql(
-        `#graphql
-        mutation customerCreate($input: CustomerInput!) {
-          customerCreate(input: $input) {
-            customer { id }
-            userErrors { field message }
-          }
-        }
-      `,
-        {
-          variables: {
-            input: { email: emailValue, tags: ["wheel-customer"] },
-          },
-        },
-      );
-      const createJson = await createResp.json();
-      const errs = createJson?.data?.customerCreate?.userErrors;
-      if (errs?.length) {
-        throw new Error(errs[0].message || "Customer create failed.");
-      }
-      return createJson?.data?.customerCreate?.customer?.id || null;
-    }
-
-    // -------------------------------------------------------------------
-    // 3️⃣ СТВОРЕННЯ ЗНИЖКИ В SHOPIFY ЧЕРЕЗ admin.graphql
+    // 2️⃣ СТВОРЕННЯ ЗНИЖКИ В SHOPIFY ЧЕРЕЗ admin.graphql
     // -------------------------------------------------------------------
     if (!admin) {
       console.error(
@@ -299,7 +252,7 @@ export async function action({ request }) {
       );
     }
 
-    async function getCollectionIdByHandle(handle) {
+    const getCollectionIdByHandle = async (handle) => {
       const resp = await admin.graphql(
         `#graphql
         query CollectionByHandle($handle: String!) {
@@ -312,52 +265,9 @@ export async function action({ request }) {
       );
       const data = await resp.json();
       return data?.data?.collectionByHandle?.id || null;
-    }
-
-    async function setCustomerWheelMetafields(customerId, prizeLabel, discountCode) {
-      if (!customerId) return;
-      const mutation = `#graphql
-        mutation metafieldsSet($metafields: [MetafieldsSetInput!]!) {
-          metafieldsSet(metafields: $metafields) {
-            metafields { id key namespace }
-            userErrors { field message }
-          }
-        }
-      `;
-      const variables = {
-        metafields: [
-          {
-            ownerId: customerId,
-            namespace: "custom",
-            key: "wheel_prize_label",
-            type: "single_line_text_field",
-            value: String(prizeLabel || ""),
-          },
-          {
-            ownerId: customerId,
-            namespace: "custom",
-            key: "wheel_discount_code",
-            type: "single_line_text_field",
-            value: String(discountCode || ""),
-          },
-        ],
-      };
-      const resp = await admin.graphql(mutation, { variables });
-      const jsonResp = await resp.json();
-      const errs = jsonResp?.data?.metafieldsSet?.userErrors;
-      if (errs?.length) {
-        console.error("MetafieldsSet errors:", errs);
-      }
-    }
+    };
 
     try {
-      const customerId = await getOrCreateCustomerIdByEmail(email);
-      if (!customerId) {
-        return json(
-          { ok: false, message: "Не вдалося створити customer для email." },
-          200,
-        );
-      }
       // CHANGE POINT: HANDLE КОЛЕКЦІЇ ДЛЯ ЗНИЖКИ
       const collectionHandle = "sets-cherie";
       const collectionId = await getCollectionIdByHandle(collectionHandle);
@@ -367,61 +277,21 @@ export async function action({ request }) {
           200,
         );
       }
-      if (chosen.discountType === "FREESHIP") {
-        // ----------------------------
-        // FREE SHIPPING
-        // ----------------------------
-        const response = await admin.graphql(
-          `#graphql
-          mutation discountCodeFreeShippingCreate($discount: DiscountCodeFreeShippingInput!) {
-            discountCodeFreeShippingCreate(freeShippingCodeDiscount: $discount) {
-              codeDiscountNode { id }
-              userErrors { field code message }
-            }
-          }
-        `,
-          {
-            variables: {
-              discount: {
-                title: chosen.label || "Wheel - Free Shipping",
-                code,
-                startsAt: nowIso,
-                endsAt: expiresAt,
-                customerSelection: { customers: { add: [customerId] } },
-                destination: { all: true },
-                appliesOncePerCustomer: true,
-                usageLimit: 1,
+      const normalizedType = chosen.discountType === "FIXED" ? "FIXED" : "PERCENT";
+      const valueNumber = Number(chosen.discountValue || 0);
+      const discountValueInput =
+        normalizedType === "FIXED"
+          ? {
+              discountAmount: {
+                amount: String(valueNumber),
+                appliesOnEachItem: false,
               },
-            },
-          },
-        );
+            }
+          : {
+              percentage: valueNumber / 100,
+            };
 
-        const jsonResp = await response.json();
-        console.log(
-          "FreeShip GraphQL resp:",
-          JSON.stringify(jsonResp, null, 2),
-        );
-        const errs =
-          jsonResp?.data?.discountCodeFreeShippingCreate?.userErrors;
-
-        if (errs?.length) {
-          console.error("FreeShip errors:", errs);
-          return json(
-            {
-              ok: false,
-              message: `Помилка створення знижки: ${
-                errs[0].message || "unknown error"
-              }`,
-            },
-            200,
-          );
-        }
-      } else if (chosen.discountType === "FIXED") {
-        // ----------------------------
-        // FIXED amount (code discount)
-        // ----------------------------
-        const valueNumber = Number(chosen.discountValue || 0);
-
+      const createBasicDiscount = async (customerGetsInput) => {
         const response = await admin.graphql(
           `#graphql
           mutation discountCodeBasicCreate($discount: DiscountCodeBasicInput!) {
@@ -437,118 +307,69 @@ export async function action({ request }) {
                 title: chosen.label || "Wheel discount",
                 code,
                 startsAt: nowIso,
-                endsAt: expiresAt,
-                customerSelection: { customers: { add: [customerId] } },
-                customerGets: {
-                  value: {
-                    discountAmount: {
-                      amount: String(valueNumber),
-                      appliesOnEachItem: false,
-                    },
-                  },
-                  items: { collections: { add: [collectionId] } },
+                customerSelection: { all: true },
+                customerGets: customerGetsInput,
+                combinesWith: {
+                  productDiscounts: true,
+                  orderDiscounts: false,
+                  shippingDiscounts: false,
                 },
                 appliesOncePerCustomer: true,
-                usageLimit: 1,
               },
             },
           },
         );
 
-        const jsonResp = await response.json();
-        console.log(
-          "Fixed discount GraphQL resp:",
-          JSON.stringify(jsonResp, null, 2),
+        return response.json();
+      };
+
+      const customerGetsForOneTime = {
+        value: discountValueInput,
+        items: { collections: { add: [collectionId] } },
+        appliesOnOneTimePurchase: true,
+      };
+      const customerGetsDefault = {
+        value: discountValueInput,
+        items: { collections: { add: [collectionId] } },
+      };
+
+      let jsonResp = await createBasicDiscount(customerGetsForOneTime);
+      let errs = jsonResp?.data?.discountCodeBasicCreate?.userErrors || [];
+
+      const shouldRetryWithoutPurchaseType = errs.some((err) => {
+        const msg = String(err?.message || "").toLowerCase();
+        const fieldPath = Array.isArray(err?.field)
+          ? err.field.join(".").toLowerCase()
+          : "";
+        return (
+          msg.includes("applies_on_one_time_purchase") ||
+          fieldPath.includes("applies_on_one_time_purchase") ||
+          fieldPath.includes("appliesononetimepurchase")
         );
-        const errs =
-          jsonResp?.data?.discountCodeBasicCreate?.userErrors;
+      });
 
-        if (errs?.length) {
-          console.error("Discount errors:", errs);
-          return json(
-            {
-              ok: false,
-              message: `Помилка створення знижки: ${
-                errs[0].message || "unknown error"
-              }`,
-            },
-            200,
-          );
-        }
-      } else {
-        // ----------------------------
-        // PERCENT (limit to 1 item from a collection)
-        // ----------------------------
-        const isPercent = chosen.discountType === "PERCENT";
-        if (!isPercent) {
-          return json(
-            { ok: false, message: "Цей тип знижки не підтримується." },
-            200,
-          );
-        }
-        const valueNumber = Number(chosen.discountValue || 0);
-
-        const response = await admin.graphql(
-          `#graphql
-          mutation discountCodeBxgyCreate($discount: DiscountCodeBxgyInput!) {
-            discountCodeBxgyCreate(bxgyCodeDiscount: $discount) {
-              codeDiscountNode { id }
-              userErrors { field code message }
-            }
-          }
-        `,
-          {
-            variables: {
-              discount: {
-                title: chosen.label || "Wheel discount",
-                code,
-                startsAt: nowIso,
-                endsAt: expiresAt,
-                customerSelection: { customers: { add: [customerId] } },
-                customerBuys: {
-                  value: { quantity: "1" },
-                  items: { collections: { add: [collectionId] } },
-                },
-                customerGets: {
-                  items: { collections: { add: [collectionId] } },
-                  value: {
-                    discountOnQuantity: {
-                      quantity: "1",
-                      effect: { percentage: valueNumber / 100 },
-                    },
-                  },
-                },
-                usesPerOrderLimit: 1,
-                appliesOncePerCustomer: true,
-                usageLimit: 1,
-              },
-            },
-          },
-        );
-
-        const jsonResp = await response.json();
-        console.log(
-          "Bxgy discount GraphQL resp:",
-          JSON.stringify(jsonResp, null, 2),
-        );
-        const errs =
-          jsonResp?.data?.discountCodeBxgyCreate?.userErrors;
-
-        if (errs?.length) {
-          console.error("Discount errors:", errs);
-          return json(
-            {
-              ok: false,
-              message: `Помилка створення знижки: ${
-                errs[0].message || "unknown error"
-              }`,
-            },
-            200,
-          );
-        }
+      if (shouldRetryWithoutPurchaseType) {
+        jsonResp = await createBasicDiscount(customerGetsDefault);
+        errs = jsonResp?.data?.discountCodeBasicCreate?.userErrors || [];
       }
 
-      await setCustomerWheelMetafields(customerId, chosen.label, code);
+      console.log(
+        "Basic discount GraphQL resp:",
+        JSON.stringify(jsonResp, null, 2),
+      );
+
+      if (errs?.length) {
+        console.error("Discount errors:", errs);
+        return json(
+          {
+            ok: false,
+            message: `Помилка створення знижки: ${
+              errs[0].message || "unknown error"
+            }`,
+          },
+          200,
+        );
+      }
     } catch (err) {
       console.error("Shopify discount create ERROR:", err);
       return json(

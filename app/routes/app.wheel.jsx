@@ -67,11 +67,16 @@ export async function action({ request }) {
     return null;
   }
 
+  const normalizeDiscountType = (rawType) => {
+    if (rawType === "FIXED") return "FIXED";
+    return "PERCENT";
+  };
+
   const buildSegment = (i) => ({
     enabled: formData.get(`s${i}_enabled`) === "on",
     label: formData.get(`s${i}_label`) || "",
     chance: Number(formData.get(`s${i}_chance`) || 0),
-    discountType: formData.get(`s${i}_dtype`) || "PERCENT",
+    discountType: normalizeDiscountType(formData.get(`s${i}_dtype`)),
     discountValue: Number(formData.get(`s${i}_dvalue`) || 0),
   });
 
@@ -262,7 +267,9 @@ export default function WheelPage() {
                         <label style={{ fontSize: 12 }}>Тип знижки</label>
                         <select
                           name={`s${i}_dtype`}
-                          defaultValue={seg.discountType || "PERCENT"}
+                          defaultValue={
+                            seg.discountType === "FIXED" ? "FIXED" : "PERCENT"
+                          }
                           style={{
                             width: "93%",
                             padding: "6px 8px",
@@ -272,9 +279,8 @@ export default function WheelPage() {
                             fontSize: 13,
                           }}
                         >
-                          <option value="PERCENT">% від суми</option>
-                          <option value="FIXED">Фіксована сума</option>
-                          <option value="FREESHIP">Безкоштовна доставка</option>
+                          <option value="PERCENT">% на товари</option>
+                          <option value="FIXED">Фіксована сума на товари</option>
                         </select>
                       </div>
 

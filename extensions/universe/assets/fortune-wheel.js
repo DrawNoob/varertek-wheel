@@ -105,10 +105,31 @@
       const errorMessage =
         overlay.getAttribute("data-error-message") ||
         "Введ\u0456ть коректний email, щоб крутити колесо.";
-      const usedMessage = "Цей email ви вже використали. Ось ваш код:";
+      const usedMessage =
+        overlay.getAttribute("data-used-message") ||
+        "Цей email ви вже використали. Ось ваш код:";
+      const copyRequiredMessage =
+        overlay.getAttribute("data-copy-required-message") ||
+        "Скопіюй, щоб не втратити код.";
+      const wheelNotConfiguredMessage =
+        overlay.getAttribute("data-wheel-not-configured-message") ||
+        "Колесо не налаштоване.";
+      const genericErrorMessage =
+        overlay.getAttribute("data-generic-error-message") ||
+        "Сталася помилка, спробуйте ще раз.";
       const defaultSuccess =
         overlay.getAttribute("data-success-message") ||
         "Ви усп\u0456шно прокрутили колесо!";
+      const successWinTemplate =
+        overlay.getAttribute("data-success-win-template") ||
+        "{success_message} Ваш виграш: {label}. Код дійсний 1 місяць.";
+      const existingWinTemplate =
+        overlay.getAttribute("data-existing-win-template") ||
+        "Ваш виграш: {label}.";
+      const copySuccessMessage =
+        overlay.getAttribute("data-copy-success-message") || "Скопійовано!";
+      const copyFailMessage =
+        overlay.getAttribute("data-copy-fail-message") || "Не вдалося скопіювати :(";
   
 
       if (Array.isArray(segments) && segments.length > 0) {
@@ -178,7 +199,7 @@
 
       function closeOverlay() {
         if (hasSpun && !hasCopied) {
-          showError("Скопіюй, щоб не втратити код.");
+          showError(copyRequiredMessage);
           return false;
         }
         if (closeLink) {
@@ -200,7 +221,7 @@
         useCodeBtn.addEventListener("click", function () {
           if (useCodeBtn.classList.contains("vt-wheel-use-code-btn--disabled")) {
             showSuccess("");
-            showError("Скопіюй, щоб не втратити код.");
+            showError(copyRequiredMessage);
             return;
           }
           closeOverlay();
@@ -231,7 +252,7 @@
       async function spinWheel() {
         if (!disc || !spinBtn) return;
         if (!Array.isArray(segments) || segments.length === 0) {
-          showError("Колесо не налаштоване.");
+          showError(wheelNotConfiguredMessage);
           return;
         }
 
@@ -268,7 +289,9 @@
 
           if (!res.ok || !data.ok) {
             if (data?.existingCode) {
-              const existingLabel = data?.existingLabel ? ` Ваш виграш: ${data.existingLabel}.` : "";
+              const existingLabel = data?.existingLabel
+                ? ` ${existingWinTemplate.replace("{label}", data.existingLabel)}`
+                : "";
               showError("");
               showSuccess(`${usedMessage} ${data.existingCode}.${existingLabel}`);
               hasSpun = true;
@@ -294,7 +317,7 @@
             const msg =
               data?.message === "Цей email вже використовував колесо."
                 ? usedMessage
-                : data?.message || "Сталася помилка, спробуйте ще раз.";
+                : data?.message || genericErrorMessage;
             showError(msg);
             spinBtn.disabled = false;
             return;
@@ -303,7 +326,9 @@
           const { index, label, code } = data.result;
           const segmentAngle = 360 / segments.length;
 
-          const successMessage = `${defaultSuccess} Ваш виграш: ${label}. Код дійсний 1 місяць.`;
+          const successMessage = successWinTemplate
+            .replace("{success_message}", defaultSuccess)
+            .replace("{label}", label);
 
           //
           showError("");
@@ -379,7 +404,7 @@
           setTimeout(finishSpin, 4600);
         } catch (err) {
           console.error("WheelSpin error", err);
-          showError("Сталася помилка, спробуйте ще раз.");
+          showError(genericErrorMessage);
           spinBtn.disabled = false;
         }
       }
@@ -392,7 +417,7 @@
           try {
             await navigator.clipboard.writeText(codeInput.value);
             if (codeCopiedEl) {
-              codeCopiedEl.textContent = "Скопійовано!";
+              codeCopiedEl.textContent = copySuccessMessage;
             }
             hasCopied = true;
             setUseCodeButtonState(true);
@@ -400,7 +425,7 @@
           } catch (e) {
             console.error("Clipboard error", e);
             if (codeCopiedEl) {
-              codeCopiedEl.textContent = "Не вдалося скопіювати :(";
+              codeCopiedEl.textContent = copyFailMessage;
             }
           }
         });

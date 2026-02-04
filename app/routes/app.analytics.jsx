@@ -506,7 +506,7 @@ function formatEventType(type) {
 function displayEmail(email) {
   if (!email || email === "non-logged-in") return "non-logged-in";
   if (email.length <= 12) return email;
-  return `hash:${email.slice(0, 8)}`;
+  return `12:${email.slice(0, 10)}`;
 }
 
 function formatDateLabel(isoDate) {
