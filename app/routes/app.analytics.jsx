@@ -556,6 +556,7 @@ export default function AnalyticsPage() {
   } = useLoaderData();
   const location = useLocation();
   const [rangeType, setRangeType] = useState(range.type);
+  const [hoveredEvent, setHoveredEvent] = useState(null);
   const countsByEmail = eventTypeCounts.reduce((acc, row) => {
     const email = row.email;
     if (!acc[email]) acc[email] = [];
@@ -611,6 +612,10 @@ export default function AnalyticsPage() {
       const entry = entries.find((item) => item.type === type);
       return sum + (entry?.count || 0);
     }, 0);
+  };
+  const getEventTooltip = (email, eventType) => {
+    const types = eventTypeGroups[eventType] || [eventType];
+    return tooltipForTypes(email, types);
   };
   const buildProductTypeHref = (type) => {
     const params = new URLSearchParams(location.search);
@@ -1168,10 +1173,55 @@ const inputStyle = {
                     <td style={{ padding: 8 }}>
                       {eventOrder.map((type) => {
                         const count = getEventCount(row.email, type);
-                        const tooltipTypes = eventTypeGroups[type] || [type];
+                        const tooltip = getEventTooltip(row.email, type);
+                        const hoverKey = `${row.email}:${type}`;
                         return (
-                          <div key={type}>
-                            <span title={tooltipForTypes(row.email, tooltipTypes)}>
+                          <div key={type} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span
+                              onMouseEnter={() => setHoveredEvent(hoverKey)}
+                              onMouseLeave={() => setHoveredEvent(null)}
+                              style={{
+                                position: "relative",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                width: 16,
+                                height: 16,
+                                borderRadius: "50%",
+                                border: "1px solid #d1d5db",
+                                color: "#6b7280",
+                                fontSize: 11,
+                                cursor: tooltip ? "pointer" : "default",
+                                background: "#fff",
+                              }}
+                            >
+                              i
+                              {hoveredEvent === hoverKey && tooltip && (
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "100%",
+                                    left: 0,
+                                    marginTop: 6,
+                                    zIndex: 50,
+                                    minWidth: 220,
+                                    maxWidth: 360,
+                                    padding: "8px 10px",
+                                    borderRadius: 8,
+                                    border: "1px solid #e5e7eb",
+                                    background: "#fff",
+                                    boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
+                                    color: "#111827",
+                                    fontSize: 12,
+                                    lineHeight: "16px",
+                                    whiteSpace: "pre-line",
+                                  }}
+                                >
+                                  {tooltip}
+                                </div>
+                              )}
+                            </span>
+                            <span>
                               {formatEventType(type)}: {count}
                             </span>
                           </div>
