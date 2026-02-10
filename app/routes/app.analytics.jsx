@@ -166,6 +166,43 @@ export const loader = async ({ request }) => {
     take: USERS_PAGE_SIZE,
   });
 
+  let userNames = {};
+  if (admin) {
+    const emails = users
+      .map((row) => row.email)
+      .filter((email) => typeof email === "string" && email && email !== "non-logged-in");
+    if (emails.length > 0) {
+      const queryParts = emails.map((email, idx) => {
+        const safeEmail = String(email).replace(/["\\]/g, "\\$&");
+        return `c${idx}: customers(first: 1, query: "email:${safeEmail}") { edges { node { firstName lastName email } } }`;
+      });
+      const query = `#graphql
+        query UsersByEmail {
+          ${queryParts.join("\n")}
+        }
+      `;
+
+      try {
+        const response = await admin.graphql(query);
+        const jsonResp = await response.json();
+        const data = jsonResp?.data || {};
+        userNames = emails.reduce((acc, email, idx) => {
+          const edges = data[`c${idx}`]?.edges || [];
+          const customer = edges[0]?.node;
+          const first = typeof customer?.firstName === "string" ? customer.firstName.trim() : "";
+          const last = typeof customer?.lastName === "string" ? customer.lastName.trim() : "";
+          if (first && last) {
+            acc[email] = `${first} ${last}`;
+          }
+          return acc;
+        }, {});
+      } catch (err) {
+        console.error("Failed to load customer names", err);
+        userNames = {};
+      }
+    }
+  }
+
   const eventTypeCounts = await prisma.userEvent.groupBy({
     by: ["email", "eventType"],
     where: {
@@ -247,6 +284,17 @@ export const loader = async ({ request }) => {
         product_type_purchase: {},
         product_type_paid: {},
       };
+    }
+    if (!userNames[event.email] && event.eventData) {
+      const firstName =
+        event.eventData.firstName || event.eventData.first_name || event.eventData.firstname;
+      const lastName =
+        event.eventData.lastName || event.eventData.last_name || event.eventData.lastname;
+      const first = typeof firstName === "string" ? firstName.trim() : "";
+      const last = typeof lastName === "string" ? lastName.trim() : "";
+      if (first && last) {
+        userNames[event.email] = `${first} ${last}`;
+      }
     }
 
     const target = acc[event.email][event.eventType];
@@ -523,6 +571,7 @@ export const loader = async ({ request }) => {
 
   return {
     users,
+    userNames,
     usersTotal,
     usersPage,
     usersPages,
@@ -580,6 +629,12 @@ function displayEmail(email) {
   return `#:${email.slice(0, 10)}`;
 }
 
+function displayUserName(email, userNames) {
+  const name = userNames?.[email];
+  if (typeof name === "string" && name.trim()) return name.trim();
+  return displayEmail(email);
+}
+
 function formatDateLabel(isoDate) {
   const parts = String(isoDate).split("-");
   if (parts.length !== 3) return isoDate;
@@ -589,6 +644,7 @@ function formatDateLabel(isoDate) {
 export default function AnalyticsPage() {
   const {
     users,
+    userNames,
     usersTotal,
     usersPage,
     usersPages,
@@ -1202,7 +1258,7 @@ const inputStyle = {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: "left", padding: 8 }}>Email</th>
+                  <th style={{ textAlign: "left", padding: 8 }}>Name / Email</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Події</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Остання</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Які події</th>
@@ -1211,7 +1267,7 @@ const inputStyle = {
               <tbody>
                 {users.map((row) => (
                   <tr key={row.email} style={{ borderTop: "1px solid #eee" }}>
-                    <td style={{ padding: 8 }}>{displayEmail(row.email)}</td>
+                    <td style={{ padding: 8 }}>{displayUserName(row.email, userNames)}</td>
                     <td style={{ padding: 8 }}>{row._count?._all || 0}</td>
                     <td style={{ padding: 8 }}>
                       {row._max?.createdAt
