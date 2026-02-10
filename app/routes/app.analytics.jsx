@@ -7,7 +7,30 @@ import { getTenantPrisma } from "../tenant-db.server";
 const MAX_TOOLTIP_ITEMS = 20;
 const MAX_EVENTS_FOR_TOOLTIPS = 5000;
 const MAX_EVENTS_FOR_SUMMARY = 20000;
+const MAX_TOOLTIP_PRODUCTS = 80;
+const PRODUCT_TITLE_CACHE_TTL_MS = 5 * 60 * 1000;
+const USERS_PAGE_SIZE = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const productTitleCache = new Map();
+
+function getCachedProductTitle(handle) {
+  const entry = productTitleCache.get(handle);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    productTitleCache.delete(handle);
+    return null;
+  }
+  return entry.title || null;
+}
+
+function setCachedProductTitle(handle, title) {
+  if (!handle || !title) return;
+  productTitleCache.set(handle, {
+    title,
+    expiresAt: Date.now() + PRODUCT_TITLE_CACHE_TTL_MS,
+  });
+}
 
 function startOfDay(date) {
   const d = new Date(date);
@@ -123,6 +146,8 @@ export const loader = async ({ request }) => {
   const range = buildRange(url);
   const compareEnabled = url.searchParams.get("compare") === "1";
   const productTypeFilter = url.searchParams.get("productType") || "";
+  const usersPageParam = Number.parseInt(url.searchParams.get("usersPage") || "1", 10);
+  const usersPageRequested = Number.isFinite(usersPageParam) && usersPageParam > 0 ? usersPageParam : 1;
   const summaryEventTypes = [
     "page_view",
     "product_click",
@@ -131,6 +156,20 @@ export const loader = async ({ request }) => {
     "product_type_purchase",
     "product_type_paid",
   ];
+
+  const usersTotal = (
+    await prisma.userEvent.groupBy({
+      by: ["email"],
+      where: {
+        shop,
+        createdAt: { gte: range.start, lt: range.end },
+        email: { not: null },
+      },
+    })
+  ).length;
+  const usersPages = Math.max(1, Math.ceil(usersTotal / USERS_PAGE_SIZE));
+  const usersPage = Math.min(usersPageRequested, usersPages);
+  const usersSkip = (usersPage - 1) * USERS_PAGE_SIZE;
 
   const users = await prisma.userEvent.groupBy({
     by: ["email"],
@@ -144,7 +183,46 @@ export const loader = async ({ request }) => {
     orderBy: {
       _max: { createdAt: "desc" },
     },
+    skip: usersSkip,
+    take: USERS_PAGE_SIZE,
   });
+
+  let userNames = {};
+  if (admin) {
+    const emails = users
+      .map((row) => row.email)
+      .filter((email) => typeof email === "string" && email && email !== "non-logged-in");
+    if (emails.length > 0) {
+      const queryParts = emails.map((email, idx) => {
+        const safeEmail = String(email).replace(/["\\]/g, "\\$&");
+        return `c${idx}: customers(first: 1, query: "email:${safeEmail}") { edges { node { firstName lastName email } } }`;
+      });
+      const query = `#graphql
+        query UsersByEmail {
+          ${queryParts.join("\n")}
+        }
+      `;
+
+      try {
+        const response = await admin.graphql(query);
+        const jsonResp = await response.json();
+        const data = jsonResp?.data || {};
+        userNames = emails.reduce((acc, email, idx) => {
+          const edges = data[`c${idx}`]?.edges || [];
+          const customer = edges[0]?.node;
+          const first = typeof customer?.firstName === "string" ? customer.firstName.trim() : "";
+          const last = typeof customer?.lastName === "string" ? customer.lastName.trim() : "";
+          if (first && last) {
+            acc[email] = `${first} ${last}`;
+          }
+          return acc;
+        }, {});
+      } catch (err) {
+        console.error("Failed to load customer names", err);
+        userNames = {};
+      }
+    }
+  }
 
   const eventTypeCounts = await prisma.userEvent.groupBy({
     by: ["email", "eventType"],
@@ -173,6 +251,56 @@ export const loader = async ({ request }) => {
     take: MAX_EVENTS_FOR_TOOLTIPS,
   });
 
+  let tooltipProductTitleMap = {};
+  if (admin) {
+    const handles = Array.from(
+      new Set(
+        recentEvents
+          .map((event) => event.productHandle)
+          .filter((handle) => typeof handle === "string" && handle.trim() !== ""),
+      ),
+    ).slice(0, MAX_TOOLTIP_PRODUCTS);
+
+    tooltipProductTitleMap = handles.reduce((acc, handle) => {
+      const cached = getCachedProductTitle(handle);
+      if (cached) acc[handle] = cached;
+      return acc;
+    }, {});
+
+    const handlesToFetch = handles.filter((handle) => !tooltipProductTitleMap[handle]);
+
+    if (handlesToFetch.length > 0) {
+      const queryParts = handlesToFetch.map((handle, idx) => {
+        let safeHandle = String(handle);
+        try {
+          safeHandle = decodeURIComponent(safeHandle);
+        } catch {}
+        safeHandle = safeHandle.replace(/"/g, "\\\"");
+        return `p${idx}: productByHandle(handle: "${safeHandle}") { title handle }`;
+      });
+      const query = `#graphql
+        query TooltipProducts {
+          ${queryParts.join("\n")}
+        }
+      `;
+
+      try {
+        const response = await admin.graphql(query);
+        const jsonResp = await response.json();
+        const data = jsonResp?.data || {};
+        handlesToFetch.forEach((handle, idx) => {
+          const product = data[`p${idx}`];
+          if (product?.title) {
+            tooltipProductTitleMap[handle] = product.title;
+            setCachedProductTitle(handle, product.title);
+          }
+        });
+      } catch (err) {
+        console.error("Failed to load tooltip product titles", err);
+      }
+    }
+  }
+
   const tooltipData = recentEvents.reduce((acc, event) => {
     if (!event.email) return acc;
     if (!acc[event.email]) {
@@ -185,13 +313,28 @@ export const loader = async ({ request }) => {
         product_type_paid: {},
       };
     }
+    if (!userNames[event.email] && event.eventData) {
+      const firstName =
+        event.eventData.firstName || event.eventData.first_name || event.eventData.firstname;
+      const lastName =
+        event.eventData.lastName || event.eventData.last_name || event.eventData.lastname;
+      const first = typeof firstName === "string" ? firstName.trim() : "";
+      const last = typeof lastName === "string" ? lastName.trim() : "";
+      if (first && last) {
+        userNames[event.email] = `${first} ${last}`;
+      }
+    }
 
     const target = acc[event.email][event.eventType];
     if (!target) return acc;
 
     let value = null;
-    if (event.eventType === "product_click") {
-      value = event.productHandle || event.url;
+    if (event.eventType === "product_click" || event.eventType === "add_to_cart") {
+      if (event.productHandle) {
+        value = tooltipProductTitleMap[event.productHandle] || event.productHandle;
+      } else {
+        value = event.url;
+      }
     } else if (
       event.eventType === "product_type_purchase" ||
       event.eventType === "product_type_paid"
@@ -456,6 +599,11 @@ export const loader = async ({ request }) => {
 
   return {
     users,
+    userNames,
+    usersTotal,
+    usersPage,
+    usersPages,
+    usersPageSize: USERS_PAGE_SIZE,
     eventTypeCounts,
     tooltipData,
     topProducts,
@@ -506,7 +654,13 @@ function formatEventType(type) {
 function displayEmail(email) {
   if (!email || email === "non-logged-in") return "non-logged-in";
   if (email.length <= 12) return email;
-  return `12:${email.slice(0, 10)}`;
+  return `#:${email.slice(0, 10)}`;
+}
+
+function displayUserName(email, userNames) {
+  const name = userNames?.[email];
+  if (typeof name === "string" && name.trim()) return name.trim();
+  return displayEmail(email);
 }
 
 function formatDateLabel(isoDate) {
@@ -518,6 +672,11 @@ function formatDateLabel(isoDate) {
 export default function AnalyticsPage() {
   const {
     users,
+    userNames,
+    usersTotal,
+    usersPage,
+    usersPages,
+    usersPageSize,
     eventTypeCounts,
     tooltipData,
     summary,
@@ -529,6 +688,7 @@ export default function AnalyticsPage() {
   } = useLoaderData();
   const location = useLocation();
   const [rangeType, setRangeType] = useState(range.type);
+  const [hoveredEvent, setHoveredEvent] = useState(null);
   const countsByEmail = eventTypeCounts.reduce((acc, row) => {
     const email = row.email;
     if (!acc[email]) acc[email] = [];
@@ -539,18 +699,22 @@ export default function AnalyticsPage() {
     return acc;
   }, {});
 
-  const eventOrder = [
-    "page_view",
-    "product_click",
-    "add_to_cart",
-    "button_click",
-    "product_type_purchase",
-    "product_type_paid",
-  ];
+  const eventOrder = ["product_click", "add_to_cart", "product_type_purchase"];
+  const eventTypeGroups = {
+    product_click: ["product_click"],
+    add_to_cart: ["add_to_cart"],
+    product_type_purchase: ["product_type_purchase"],
+  };
 
-  const tooltipFor = (email, eventType) => {
-    const items = tooltipData?.[email]?.[eventType] || {};
-    const entries = Object.entries(items);
+  const tooltipForTypes = (email, eventTypes) => {
+    const merged = eventTypes.reduce((acc, type) => {
+      const items = tooltipData?.[email]?.[type] || {};
+      Object.entries(items).forEach(([key, value]) => {
+        acc[key] = (acc[key] || 0) + value;
+      });
+      return acc;
+    }, {});
+    const entries = Object.entries(merged);
     if (entries.length === 0) return "";
     return entries
       .sort((a, b) => b[1] - a[1])
@@ -570,12 +734,37 @@ export default function AnalyticsPage() {
       })
       .join("\n");
   };
+  const tooltipFor = (email, eventType) => {
+    return tooltipForTypes(email, [eventType]);
+  };
+  const getEventCount = (email, eventType) => {
+    const types = eventTypeGroups[eventType] || [eventType];
+    const entries = countsByEmail[email] || [];
+    return types.reduce((sum, type) => {
+      const entry = entries.find((item) => item.type === type);
+      return sum + (entry?.count || 0);
+    }, 0);
+  };
+  const getEventTooltip = (email, eventType) => {
+    const types = eventTypeGroups[eventType] || [eventType];
+    return tooltipForTypes(email, types);
+  };
   const buildProductTypeHref = (type) => {
     const params = new URLSearchParams(location.search);
     if (type) {
       params.set("productType", type);
     } else {
       params.delete("productType");
+    }
+    const query = params.toString();
+    return query ? `${location.pathname}?${query}` : location.pathname;
+  };
+  const buildUsersPageHref = (page) => {
+    const params = new URLSearchParams(location.search);
+    if (page <= 1) {
+      params.delete("usersPage");
+    } else {
+      params.set("usersPage", String(page));
     }
     const query = params.toString();
     return query ? `${location.pathname}?${query}` : location.pathname;
@@ -604,8 +793,6 @@ export default function AnalyticsPage() {
   const linePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
 
   const summaryTypeEntries = Object.entries(summary.typeCounts || {})
-    .sort((a, b) => b[1] - a[1]);
-  const summaryPaidTypeEntries = Object.entries(summary.typeCountsPaid || {})
     .sort((a, b) => b[1] - a[1]);
   const displayProducts = Array.from({ length: 8 }, (_, idx) => topProducts[idx] || null);
   const renderCompareValue = (current, previous) => {
@@ -828,18 +1015,6 @@ const inputStyle = {
                   : "-"}
               </div>
             </div>
-            <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>
-                Типи покупок (paid)
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>
-                {summaryPaidTypeEntries.length > 0
-                  ? summaryPaidTypeEntries
-                      .map(([type, count]) => `${type}: ${count}`)
-                      .join(", ")
-                  : "-"}
-              </div>
-            </div>
           </div>
         </s-card-section>
         <s-card-section>
@@ -1038,15 +1213,66 @@ const inputStyle = {
 
       <s-section>
         <s-card-section>
-          <strong>Користувачі: {users.length}</strong>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            <strong>Користувачі: {usersTotal}</strong>
+            <span style={{ fontSize: 12, color: "#6b7280" }}>
+              {usersTotal > 0 ? `Сторінка: ${usersPage} / ${usersPages}` : null}
+            </span>
+          </div>
         </s-card-section>
         <s-divider />
         <s-card-section>
+          {usersPages > 1 && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginBottom: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <a
+                href={buildUsersPageHref(Math.max(1, usersPage - 1))}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #e5e7eb",
+                  background: usersPage <= 1 ? "#f9fafb" : "#fff",
+                  color: usersPage <= 1 ? "#9ca3af" : "#111827",
+                  textDecoration: "none",
+                  pointerEvents: usersPage <= 1 ? "none" : "auto",
+                  fontSize: 12,
+                }}
+              >
+                Prev
+              </a>
+              <span style={{ fontSize: 12, color: "#6b7280" }}>
+                Showing {Math.min(usersTotal, usersPageSize * (usersPage - 1) + 1)}-
+                {Math.min(usersTotal, usersPageSize * usersPage)} of {usersTotal}
+              </span>
+              <a
+                href={buildUsersPageHref(Math.min(usersPages, usersPage + 1))}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #e5e7eb",
+                  background: usersPage >= usersPages ? "#f9fafb" : "#fff",
+                  color: usersPage >= usersPages ? "#9ca3af" : "#111827",
+                  textDecoration: "none",
+                  pointerEvents: usersPage >= usersPages ? "none" : "auto",
+                  fontSize: 12,
+                }}
+              >
+                Next
+              </a>
+            </div>
+          )}
           <div style={{ overflowX: "auto", marginTop: 20 }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: "left", padding: 8 }}>Email</th>
+                  <th style={{ textAlign: "left", padding: 8 }}>Name / Email</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Події</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Остання</th>
                   <th style={{ textAlign: "left", padding: 8 }}>Які події</th>
@@ -1055,7 +1281,7 @@ const inputStyle = {
               <tbody>
                 {users.map((row) => (
                   <tr key={row.email} style={{ borderTop: "1px solid #eee" }}>
-                    <td style={{ padding: 8 }}>{displayEmail(row.email)}</td>
+                    <td style={{ padding: 8 }}>{displayUserName(row.email, userNames)}</td>
                     <td style={{ padding: 8 }}>{row._count?._all || 0}</td>
                     <td style={{ padding: 8 }}>
                       {row._max?.createdAt
@@ -1063,22 +1289,65 @@ const inputStyle = {
                         : "-"}
                     </td>
                     <td style={{ padding: 8 }}>
-                      {(countsByEmail[row.email] || []).length > 0
-                        ? [...(countsByEmail[row.email] || [])]
-                            .sort((a, b) => {
-                              return (
-                                eventOrder.indexOf(a.type) -
-                                eventOrder.indexOf(b.type)
-                              );
-                            })
-                            .map((entry) => (
-                              <div key={entry.type}>
-                                <span title={tooltipFor(row.email, entry.type)}>
-                                  {formatEventType(entry.type)}: {entry.count}
-                                </span>
-                              </div>
-                            ))
-                        : "-"}
+                      {eventOrder.map((type) => {
+                        const count = getEventCount(row.email, type);
+                        const tooltip = getEventTooltip(row.email, type);
+                        const hoverKey = `${row.email}:${type}`;
+                        return (
+                          <div key={type} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span
+                              onMouseEnter={() => setHoveredEvent(hoverKey)}
+                              onMouseLeave={() => setHoveredEvent(null)}
+                              style={{
+                                position: "relative",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                width: 16,
+                                height: 16,
+                                borderRadius: "50%",
+                                border:
+                                  hoveredEvent === hoverKey
+                                    ? "1px solid #111827"
+                                    : "1px solid #d1d5db",
+                                color: hoveredEvent === hoverKey ? "#fff" : "#6b7280",
+                                fontSize: 11,
+                                cursor: tooltip ? "pointer" : "default",
+                                background: hoveredEvent === hoverKey ? "#111827" : "#fff",
+                              }}
+                            >
+                              i
+                              {hoveredEvent === hoverKey && tooltip && (
+                                <div
+                                  style={{
+                                    position: "absolute",
+                                    top: "100%",
+                                    left: 0,
+                                    marginTop: 6,
+                                    zIndex: 50,
+                                    minWidth: 220,
+                                    maxWidth: 360,
+                                    padding: "8px 10px",
+                                    borderRadius: 8,
+                                    border: "1px solid #e5e7eb",
+                                    background: "#fff",
+                                    boxShadow: "0 6px 18px rgba(0,0,0,0.12)",
+                                    color: "#111827",
+                                    fontSize: 12,
+                                    lineHeight: "16px",
+                                    whiteSpace: "pre-line",
+                                  }}
+                                >
+                                  {tooltip}
+                                </div>
+                              )}
+                            </span>
+                            <span>
+                              {formatEventType(type)}: {count}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </td>
                   </tr>
                 ))}
