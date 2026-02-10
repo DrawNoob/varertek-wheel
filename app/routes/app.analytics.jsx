@@ -7,6 +7,7 @@ import { getTenantPrisma } from "../tenant-db.server";
 const MAX_TOOLTIP_ITEMS = 20;
 const MAX_EVENTS_FOR_TOOLTIPS = 5000;
 const MAX_EVENTS_FOR_SUMMARY = 20000;
+const MAX_TOOLTIP_PRODUCTS = 80;
 const USERS_PAGE_SIZE = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -192,6 +193,49 @@ export const loader = async ({ request }) => {
     take: MAX_EVENTS_FOR_TOOLTIPS,
   });
 
+  let tooltipProductTitleMap = {};
+  if (admin) {
+    const handles = Array.from(
+      new Set(
+        recentEvents
+          .map((event) => event.productHandle)
+          .filter((handle) => typeof handle === "string" && handle.trim() !== ""),
+      ),
+    ).slice(0, MAX_TOOLTIP_PRODUCTS);
+
+    if (handles.length > 0) {
+      const queryParts = handles.map((handle, idx) => {
+        let safeHandle = String(handle);
+        try {
+          safeHandle = decodeURIComponent(safeHandle);
+        } catch {}
+        safeHandle = safeHandle.replace(/"/g, "\\\"");
+        return `p${idx}: productByHandle(handle: "${safeHandle}") { title handle }`;
+      });
+      const query = `#graphql
+        query TooltipProducts {
+          ${queryParts.join("\n")}
+        }
+      `;
+
+      try {
+        const response = await admin.graphql(query);
+        const jsonResp = await response.json();
+        const data = jsonResp?.data || {};
+        tooltipProductTitleMap = handles.reduce((acc, handle, idx) => {
+          const product = data[`p${idx}`];
+          if (product?.title) {
+            acc[handle] = product.title;
+          }
+          return acc;
+        }, {});
+      } catch (err) {
+        console.error("Failed to load tooltip product titles", err);
+        tooltipProductTitleMap = {};
+      }
+    }
+  }
+
   const tooltipData = recentEvents.reduce((acc, event) => {
     if (!event.email) return acc;
     if (!acc[event.email]) {
@@ -209,8 +253,12 @@ export const loader = async ({ request }) => {
     if (!target) return acc;
 
     let value = null;
-    if (event.eventType === "product_click") {
-      value = event.productHandle || event.url;
+    if (event.eventType === "product_click" || event.eventType === "add_to_cart") {
+      if (event.productHandle) {
+        value = tooltipProductTitleMap[event.productHandle] || event.productHandle;
+      } else {
+        value = event.url;
+      }
     } else if (
       event.eventType === "product_type_purchase" ||
       event.eventType === "product_type_paid"
@@ -1188,11 +1236,14 @@ const inputStyle = {
                                 width: 16,
                                 height: 16,
                                 borderRadius: "50%",
-                                border: "1px solid #d1d5db",
-                                color: "#6b7280",
+                                border:
+                                  hoveredEvent === hoverKey
+                                    ? "1px solid #111827"
+                                    : "1px solid #d1d5db",
+                                color: hoveredEvent === hoverKey ? "#fff" : "#6b7280",
                                 fontSize: 11,
                                 cursor: tooltip ? "pointer" : "default",
-                                background: "#fff",
+                                background: hoveredEvent === hoverKey ? "#111827" : "#fff",
                               }}
                             >
                               i
