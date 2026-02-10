@@ -7,6 +7,7 @@ import { getTenantPrisma } from "../tenant-db.server";
 const MAX_TOOLTIP_ITEMS = 20;
 const MAX_EVENTS_FOR_TOOLTIPS = 5000;
 const MAX_EVENTS_FOR_SUMMARY = 20000;
+const USERS_PAGE_SIZE = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function startOfDay(date) {
@@ -123,6 +124,8 @@ export const loader = async ({ request }) => {
   const range = buildRange(url);
   const compareEnabled = url.searchParams.get("compare") === "1";
   const productTypeFilter = url.searchParams.get("productType") || "";
+  const usersPageParam = Number.parseInt(url.searchParams.get("usersPage") || "1", 10);
+  const usersPageRequested = Number.isFinite(usersPageParam) && usersPageParam > 0 ? usersPageParam : 1;
   const summaryEventTypes = [
     "page_view",
     "product_click",
@@ -131,6 +134,20 @@ export const loader = async ({ request }) => {
     "product_type_purchase",
     "product_type_paid",
   ];
+
+  const usersTotal = (
+    await prisma.userEvent.groupBy({
+      by: ["email"],
+      where: {
+        shop,
+        createdAt: { gte: range.start, lt: range.end },
+        email: { not: null },
+      },
+    })
+  ).length;
+  const usersPages = Math.max(1, Math.ceil(usersTotal / USERS_PAGE_SIZE));
+  const usersPage = Math.min(usersPageRequested, usersPages);
+  const usersSkip = (usersPage - 1) * USERS_PAGE_SIZE;
 
   const users = await prisma.userEvent.groupBy({
     by: ["email"],
@@ -144,6 +161,8 @@ export const loader = async ({ request }) => {
     orderBy: {
       _max: { createdAt: "desc" },
     },
+    skip: usersSkip,
+    take: USERS_PAGE_SIZE,
   });
 
   const eventTypeCounts = await prisma.userEvent.groupBy({
@@ -456,6 +475,10 @@ export const loader = async ({ request }) => {
 
   return {
     users,
+    usersTotal,
+    usersPage,
+    usersPages,
+    usersPageSize: USERS_PAGE_SIZE,
     eventTypeCounts,
     tooltipData,
     topProducts,
@@ -506,7 +529,7 @@ function formatEventType(type) {
 function displayEmail(email) {
   if (!email || email === "non-logged-in") return "non-logged-in";
   if (email.length <= 12) return email;
-  return `12:${email.slice(0, 10)}`;
+  return `#:${email.slice(0, 10)}`;
 }
 
 function formatDateLabel(isoDate) {
@@ -518,6 +541,10 @@ function formatDateLabel(isoDate) {
 export default function AnalyticsPage() {
   const {
     users,
+    usersTotal,
+    usersPage,
+    usersPages,
+    usersPageSize,
     eventTypeCounts,
     tooltipData,
     summary,
@@ -539,18 +566,22 @@ export default function AnalyticsPage() {
     return acc;
   }, {});
 
-  const eventOrder = [
-    "page_view",
-    "product_click",
-    "add_to_cart",
-    "button_click",
-    "product_type_purchase",
-    "product_type_paid",
-  ];
+  const eventOrder = ["product_click", "add_to_cart", "product_type_purchase"];
+  const eventTypeGroups = {
+    product_click: ["product_click"],
+    add_to_cart: ["add_to_cart"],
+    product_type_purchase: ["product_type_purchase"],
+  };
 
-  const tooltipFor = (email, eventType) => {
-    const items = tooltipData?.[email]?.[eventType] || {};
-    const entries = Object.entries(items);
+  const tooltipForTypes = (email, eventTypes) => {
+    const merged = eventTypes.reduce((acc, type) => {
+      const items = tooltipData?.[email]?.[type] || {};
+      Object.entries(items).forEach(([key, value]) => {
+        acc[key] = (acc[key] || 0) + value;
+      });
+      return acc;
+    }, {});
+    const entries = Object.entries(merged);
     if (entries.length === 0) return "";
     return entries
       .sort((a, b) => b[1] - a[1])
@@ -570,12 +601,33 @@ export default function AnalyticsPage() {
       })
       .join("\n");
   };
+  const tooltipFor = (email, eventType) => {
+    return tooltipForTypes(email, [eventType]);
+  };
+  const getEventCount = (email, eventType) => {
+    const types = eventTypeGroups[eventType] || [eventType];
+    const entries = countsByEmail[email] || [];
+    return types.reduce((sum, type) => {
+      const entry = entries.find((item) => item.type === type);
+      return sum + (entry?.count || 0);
+    }, 0);
+  };
   const buildProductTypeHref = (type) => {
     const params = new URLSearchParams(location.search);
     if (type) {
       params.set("productType", type);
     } else {
       params.delete("productType");
+    }
+    const query = params.toString();
+    return query ? `${location.pathname}?${query}` : location.pathname;
+  };
+  const buildUsersPageHref = (page) => {
+    const params = new URLSearchParams(location.search);
+    if (page <= 1) {
+      params.delete("usersPage");
+    } else {
+      params.set("usersPage", String(page));
     }
     const query = params.toString();
     return query ? `${location.pathname}?${query}` : location.pathname;
@@ -1038,10 +1090,61 @@ const inputStyle = {
 
       <s-section>
         <s-card-section>
-          <strong>Користувачі: {users.length}</strong>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            <strong>Користувачі: {usersTotal}</strong>
+            <span style={{ fontSize: 12, color: "#6b7280" }}>
+              {usersTotal > 0 ? `Сторінка: ${usersPage} / ${usersPages}` : null}
+            </span>
+          </div>
         </s-card-section>
         <s-divider />
         <s-card-section>
+          {usersPages > 1 && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginBottom: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <a
+                href={buildUsersPageHref(Math.max(1, usersPage - 1))}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #e5e7eb",
+                  background: usersPage <= 1 ? "#f9fafb" : "#fff",
+                  color: usersPage <= 1 ? "#9ca3af" : "#111827",
+                  textDecoration: "none",
+                  pointerEvents: usersPage <= 1 ? "none" : "auto",
+                  fontSize: 12,
+                }}
+              >
+                Prev
+              </a>
+              <span style={{ fontSize: 12, color: "#6b7280" }}>
+                Showing {Math.min(usersTotal, usersPageSize * (usersPage - 1) + 1)}-
+                {Math.min(usersTotal, usersPageSize * usersPage)} of {usersTotal}
+              </span>
+              <a
+                href={buildUsersPageHref(Math.min(usersPages, usersPage + 1))}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #e5e7eb",
+                  background: usersPage >= usersPages ? "#f9fafb" : "#fff",
+                  color: usersPage >= usersPages ? "#9ca3af" : "#111827",
+                  textDecoration: "none",
+                  pointerEvents: usersPage >= usersPages ? "none" : "auto",
+                  fontSize: 12,
+                }}
+              >
+                Next
+              </a>
+            </div>
+          )}
           <div style={{ overflowX: "auto", marginTop: 20 }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -1063,22 +1166,17 @@ const inputStyle = {
                         : "-"}
                     </td>
                     <td style={{ padding: 8 }}>
-                      {(countsByEmail[row.email] || []).length > 0
-                        ? [...(countsByEmail[row.email] || [])]
-                            .sort((a, b) => {
-                              return (
-                                eventOrder.indexOf(a.type) -
-                                eventOrder.indexOf(b.type)
-                              );
-                            })
-                            .map((entry) => (
-                              <div key={entry.type}>
-                                <span title={tooltipFor(row.email, entry.type)}>
-                                  {formatEventType(entry.type)}: {entry.count}
-                                </span>
-                              </div>
-                            ))
-                        : "-"}
+                      {eventOrder.map((type) => {
+                        const count = getEventCount(row.email, type);
+                        const tooltipTypes = eventTypeGroups[type] || [type];
+                        return (
+                          <div key={type}>
+                            <span title={tooltipForTypes(row.email, tooltipTypes)}>
+                              {formatEventType(type)}: {count}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </td>
                   </tr>
                 ))}
