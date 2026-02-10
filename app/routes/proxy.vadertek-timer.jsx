@@ -3,12 +3,6 @@
 import { getTenantPrisma } from "../tenant-db.server";
 import { authenticate } from "../shopify.server";
 
-// Отримуємо shop із параметрів proxy (fallback)
-function getShopFromRequest(request) {
-  const url = new URL(request.url);
-  return url.searchParams.get("shop");
-}
-
 // ------------------------------------------------------------
 // GET → повертає countdown + wheelSegments для фронта
 // ------------------------------------------------------------
@@ -86,11 +80,11 @@ export async function action({ request }) {
     );
   }
 
-  // shop беремо з session, якщо є; інакше fallback з query
-  const shop = session?.shop || getShopFromRequest(request);
+  // shop беремо тільки з session
+  const shop = session?.shop || null;
 
   if (!shop) {
-    console.error("APP PROXY ACTION: no shop (session or query)");
+    console.error("APP PROXY ACTION: no shop in session");
     return json(
       { ok: false, message: "Не вдалося визначити магазин (shop)." },
       200,

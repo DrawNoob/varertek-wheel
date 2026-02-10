@@ -8,8 +8,29 @@ const MAX_TOOLTIP_ITEMS = 20;
 const MAX_EVENTS_FOR_TOOLTIPS = 5000;
 const MAX_EVENTS_FOR_SUMMARY = 20000;
 const MAX_TOOLTIP_PRODUCTS = 80;
+const PRODUCT_TITLE_CACHE_TTL_MS = 5 * 60 * 1000;
 const USERS_PAGE_SIZE = 10;
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+const productTitleCache = new Map();
+
+function getCachedProductTitle(handle) {
+  const entry = productTitleCache.get(handle);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    productTitleCache.delete(handle);
+    return null;
+  }
+  return entry.title || null;
+}
+
+function setCachedProductTitle(handle, title) {
+  if (!handle || !title) return;
+  productTitleCache.set(handle, {
+    title,
+    expiresAt: Date.now() + PRODUCT_TITLE_CACHE_TTL_MS,
+  });
+}
 
 function startOfDay(date) {
   const d = new Date(date);
@@ -240,8 +261,16 @@ export const loader = async ({ request }) => {
       ),
     ).slice(0, MAX_TOOLTIP_PRODUCTS);
 
-    if (handles.length > 0) {
-      const queryParts = handles.map((handle, idx) => {
+    tooltipProductTitleMap = handles.reduce((acc, handle) => {
+      const cached = getCachedProductTitle(handle);
+      if (cached) acc[handle] = cached;
+      return acc;
+    }, {});
+
+    const handlesToFetch = handles.filter((handle) => !tooltipProductTitleMap[handle]);
+
+    if (handlesToFetch.length > 0) {
+      const queryParts = handlesToFetch.map((handle, idx) => {
         let safeHandle = String(handle);
         try {
           safeHandle = decodeURIComponent(safeHandle);
@@ -259,16 +288,15 @@ export const loader = async ({ request }) => {
         const response = await admin.graphql(query);
         const jsonResp = await response.json();
         const data = jsonResp?.data || {};
-        tooltipProductTitleMap = handles.reduce((acc, handle, idx) => {
+        handlesToFetch.forEach((handle, idx) => {
           const product = data[`p${idx}`];
           if (product?.title) {
-            acc[handle] = product.title;
+            tooltipProductTitleMap[handle] = product.title;
+            setCachedProductTitle(handle, product.title);
           }
-          return acc;
-        }, {});
+        });
       } catch (err) {
         console.error("Failed to load tooltip product titles", err);
-        tooltipProductTitleMap = {};
       }
     }
   }
@@ -766,8 +794,6 @@ export default function AnalyticsPage() {
 
   const summaryTypeEntries = Object.entries(summary.typeCounts || {})
     .sort((a, b) => b[1] - a[1]);
-  const summaryPaidTypeEntries = Object.entries(summary.typeCountsPaid || {})
-    .sort((a, b) => b[1] - a[1]);
   const displayProducts = Array.from({ length: 8 }, (_, idx) => topProducts[idx] || null);
   const renderCompareValue = (current, previous) => {
     if (!summary.compareSummary) return null;
@@ -984,18 +1010,6 @@ const inputStyle = {
               <div style={{ fontSize: 14, fontWeight: 600 }}>
                 {summaryTypeEntries.length > 0
                   ? summaryTypeEntries
-                      .map(([type, count]) => `${type}: ${count}`)
-                      .join(", ")
-                  : "-"}
-              </div>
-            </div>
-            <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 12, color: "#6b7280" }}>
-                Типи покупок (paid)
-              </div>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>
-                {summaryPaidTypeEntries.length > 0
-                  ? summaryPaidTypeEntries
                       .map(([type, count]) => `${type}: ${count}`)
                       .join(", ")
                   : "-"}
