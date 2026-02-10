@@ -723,12 +723,12 @@ export default function AnalyticsPage() {
           const url = new URL(item);
           const decodedPath = decodeURIComponent(url.pathname);
           const decodedSearch = url.search ? decodeURIComponent(url.search) : "";
-          return `${url.hostname}${decodedPath}${decodedSearch} ( ${count} )`;
+          return `● ${url.hostname}${decodedPath}${decodedSearch} ( ${count} )`;
         } catch {
           try {
-            return `${decodeURIComponent(item)} ( ${count} )`;
+            return `● ${decodeURIComponent(item)} ( ${count} )`;
           } catch {
-            return `${item} ( ${count} )`;
+            return `● ${item} ( ${count} )`;
           }
         }
       })
@@ -793,6 +793,8 @@ export default function AnalyticsPage() {
   const linePoints = points.map((point) => `${point.x},${point.y}`).join(" ");
 
   const summaryTypeEntries = Object.entries(summary.typeCounts || {})
+    .sort((a, b) => b[1] - a[1]);
+  const summaryPaidTypeEntries = Object.entries(summary.typeCountsPaid || {})
     .sort((a, b) => b[1] - a[1]);
   const displayProducts = Array.from({ length: 8 }, (_, idx) => topProducts[idx] || null);
   const renderCompareValue = (current, previous) => {
@@ -1015,6 +1017,18 @@ const inputStyle = {
                   : "-"}
               </div>
             </div>
+            <div style={{ border: "1px solid #eee", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 12, color: "#6b7280" }}>
+                Типи покупок (paid)
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>
+                {summaryPaidTypeEntries.length > 0
+                  ? summaryPaidTypeEntries
+                      .map(([type, count]) => `${type}: ${count}`)
+                      .join(", ")
+                  : "-"}
+              </div>
+            </div>
           </div>
         </s-card-section>
         <s-card-section>
@@ -1222,52 +1236,6 @@ const inputStyle = {
         </s-card-section>
         <s-divider />
         <s-card-section>
-          {usersPages > 1 && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: 10,
-                flexWrap: "wrap",
-              }}
-            >
-              <a
-                href={buildUsersPageHref(Math.max(1, usersPage - 1))}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  background: usersPage <= 1 ? "#f9fafb" : "#fff",
-                  color: usersPage <= 1 ? "#9ca3af" : "#111827",
-                  textDecoration: "none",
-                  pointerEvents: usersPage <= 1 ? "none" : "auto",
-                  fontSize: 12,
-                }}
-              >
-                Prev
-              </a>
-              <span style={{ fontSize: 12, color: "#6b7280" }}>
-                Showing {Math.min(usersTotal, usersPageSize * (usersPage - 1) + 1)}-
-                {Math.min(usersTotal, usersPageSize * usersPage)} of {usersTotal}
-              </span>
-              <a
-                href={buildUsersPageHref(Math.min(usersPages, usersPage + 1))}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 8,
-                  border: "1px solid #e5e7eb",
-                  background: usersPage >= usersPages ? "#f9fafb" : "#fff",
-                  color: usersPage >= usersPages ? "#9ca3af" : "#111827",
-                  textDecoration: "none",
-                  pointerEvents: usersPage >= usersPages ? "none" : "auto",
-                  fontSize: 12,
-                }}
-              >
-                Next
-              </a>
-            </div>
-          )}
           <div style={{ overflowX: "auto", marginTop: 20 }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -1362,6 +1330,53 @@ const inputStyle = {
               </tbody>
             </table>
           </div>
+          {usersPages > 1 && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                marginTop: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <a
+                href={buildUsersPageHref(Math.max(1, usersPage - 1))}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #e5e7eb",
+                  background: usersPage <= 1 ? "#f9fafb" : "#fff",
+                  color: usersPage <= 1 ? "#9ca3af" : "#111827",
+                  textDecoration: "none",
+                  pointerEvents: usersPage <= 1 ? "none" : "auto",
+                  fontSize: 12,
+                }}
+              >
+                Попередня
+              </a>
+              <span style={{ fontSize: 12, color: "#6b7280" }}>
+                Показано {Math.min(usersTotal, usersPageSize * (usersPage - 1) + 1)}-
+                {Math.min(usersTotal, usersPageSize * usersPage)} з {usersTotal}
+              </span>
+              <a
+                href={buildUsersPageHref(Math.min(usersPages, usersPage + 1))}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  border: "1px solid #e5e7eb",
+                  background: usersPage >= usersPages ? "#f9fafb" : "#fff",
+                  color: usersPage >= usersPages ? "#9ca3af" : "#111827",
+                  textDecoration: "none",
+                  pointerEvents: usersPage >= usersPages ? "none" : "auto",
+                  fontSize: 12,
+                }}
+              >
+                Наступна
+              </a>
+            </div>
+          )}
         </s-card-section>
       </s-section>
     </s-page>
