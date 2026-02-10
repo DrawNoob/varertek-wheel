@@ -13,13 +13,24 @@ function getShopFromRequest(request) {
 // GET → повертає countdown + wheelSegments для фронта
 // ------------------------------------------------------------
 export async function loader({ request }) {
-  const shop = getShopFromRequest(request);
+  let shop = null;
+
+  try {
+    const ctx = await authenticate.public.appProxy(request);
+    shop = ctx.session?.shop || null;
+  } catch (err) {
+    console.error("authenticate.public.appProxy ERROR (loader):", err);
+    return new Response(JSON.stringify({ ok: false }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   let endDate = null;
   let wheelSegments = null;
 
   if (!shop) {
-    console.error("APP PROXY LOADER: no shop param");
+    console.error("APP PROXY LOADER: no shop in session");
   } else {
     try {
       const prisma = await getTenantPrisma(shop);
