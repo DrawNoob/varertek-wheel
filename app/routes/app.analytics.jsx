@@ -669,6 +669,13 @@ function formatDateLabel(isoDate) {
   return `${parts[2]}.${parts[1]}`;
 }
 
+function truncateLabel(text, maxLength = 60) {
+  if (!text) return "";
+  const value = String(text);
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength - 1)}…`;
+}
+
 export default function AnalyticsPage() {
   const {
     users,
@@ -723,12 +730,13 @@ export default function AnalyticsPage() {
           const url = new URL(item);
           const decodedPath = decodeURIComponent(url.pathname);
           const decodedSearch = url.search ? decodeURIComponent(url.search) : "";
-          return `● ${url.hostname}${decodedPath}${decodedSearch} ( ${count} )`;
+          const label = `${url.hostname}${decodedPath}${decodedSearch}`;
+          return `● ${truncateLabel(label, 60)} ( ${count} )`;
         } catch {
           try {
-            return `● ${decodeURIComponent(item)} ( ${count} )`;
+            return `● ${truncateLabel(decodeURIComponent(item), 60)} ( ${count} )`;
           } catch {
-            return `● ${item} ( ${count} )`;
+            return `● ${truncateLabel(item, 60)} ( ${count} )`;
           }
         }
       })
