@@ -168,6 +168,58 @@ export default function WheelPage() {
             <h1 style={{ fontSize: "22px", fontWeight: 600, marginBottom: "4px" }}>
               Колесо фортуни
             </h1>
+          </div>
+
+          <div
+            style={{
+              marginBottom: "16px",
+              padding: "12px 14px",
+              borderRadius: "10px",
+              border: "1px solid #E5E7EB",
+              background: "#F9FAFB",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "12px",
+                fontWeight: 600,
+                margin: "0 0 4px 0",
+                color: "#111827",
+              }}
+            >
+              Як це працює
+            </h2>
+            <p style={{ fontSize: "10px", margin: "0 0 2px 0", color: "#374151" }}>
+              1. Покупець вводить email і крутить колесо один раз.
+            </p>
+            <p style={{ fontSize: "10px", margin: "0 0 2px 0", color: "#374151" }}>
+              2. Система визначає виграш за вашими шансами секторів і видає промокод.
+            </p>
+            <p style={{ fontSize: "10px", margin: "0 0 10px 0", color: "#374151" }}>
+              3. Щоб знижка спрацювала, у checkout покупець має використати той самий email.
+            </p>
+
+            <p
+              style={{
+                fontSize: "12px",
+                fontWeight: 600,
+                margin: "0 0 4px 0",
+                color: "#111827",
+              }}
+            >
+              Важливо перед збереженням
+            </p>
+            <p style={{ fontSize: "10px", margin: "0 0 2px 0", color: "#374151" }}>
+              - Увімкніть щонайменше 1 сектор.
+            </p>
+            <p style={{ fontSize: "10px", margin: "0 0 2px 0", color: "#374151" }}>
+              - Сума шансів увімкнених секторів має дорівнювати 100%.
+            </p>
+            <p style={{ fontSize: "10px", margin: 0, color: "#374151" }}>
+              - Для кожного сектору заповніть назву виграшу, тип і розмір знижки.
+            </p>
+          </div>
+          <div style={{ marginBottom: "16px" }}>
             <p style={{ fontSize: "14px", color: "#6B7280" }}>
               Налаштування секторів: назва виграшу, шанс випадіння та знижка.
             </p>
