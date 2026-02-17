@@ -215,8 +215,11 @@ export default function WheelPage() {
             <p style={{ fontSize: "10px", margin: "0 0 2px 0", color: "#374151" }}>
               - Сума шансів увімкнених секторів має дорівнювати 100%.
             </p>
-            <p style={{ fontSize: "10px", margin: 0, color: "#374151" }}>
+            <p style={{ fontSize: "10px", margin: "0 0 2px 0", color: "#374151" }}>
               - Для кожного сектору заповніть назву виграшу, тип і розмір знижки.
+            </p>
+            <p style={{ fontSize: "10px", margin: 0, color: "#374151" }}>
+              - Стилі елемента змінюються в Customize теми після додавання блоку на сайт.
             </p>
           </div>
           <div style={{ marginBottom: "16px" }}>

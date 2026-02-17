@@ -151,87 +151,135 @@ export default function TimerPage() {
       <s-section>
         <s-card-section>
           <Form method="post">
-            <s-vertical-stack gap="400">
-              <h1>Таймер</h1>
+            <div style={{ marginBottom: "16px" }}>
+              <h1 style={{ fontSize: "22px", fontWeight: 600, marginBottom: "4px" }}>
+                Таймер
+              </h1>
+              <p style={{ fontSize: "14px", color: "#6B7280" }}>
+                Оберіть дату та час завершення відліку для таймера на вітрині.
+              </p>
+            </div>
 
-              <s-vertical-stack gap="100">
-                <s-text as="h2" variant="headingMd">
-                  Дата завершення таймера
-                </s-text>
-                <s-text as="p" variant="bodySm">
-                  Обери дату та час, до яких таймер буде рахувати. Якщо не
-                  вказати — на вітрині буде стандартний відлік до нового року.
-                </s-text>
-              </s-vertical-stack>
-
-              <div>
-                <s-text as="span" variant="bodyMd">
-                  Дата та час
-                </s-text>
-                <div style={{ marginTop: 8, maxWidth: 260 }}>
-                  <input
-                    type="datetime-local"
-                    name="countdownEnd"
-                    defaultValue={defaultValue}
-                    style={{
-                      padding: "8px 10px",
-                      borderRadius: "8px",
-                      border: "1px solid #d0d0d0",
-                      width: "100%",
-                    }}
-                  />
-                </div>
-              </div>
-
-              {countdownEnd && (
-                <s-text as="p" variant="bodySm" tone="subdued">
-                  Поточне значення:{" "}
-                  {new Date(countdownEnd).toLocaleString(
-                    undefined,
-                    shopTimezone ? { timeZone: shopTimezone } : undefined,
-                  )}
-                </s-text>
-              )}
-
-              <div
+            <div
+              style={{
+                marginBottom: "16px",
+                padding: "12px 14px",
+                borderRadius: "10px",
+                border: "1px solid #E5E7EB",
+                background: "#F9FAFB",
+              }}
+            >
+              <h2
                 style={{
-                  marginTop: "16px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "16px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  margin: "0 0 4px 0",
+                  color: "#111827",
                 }}
               >
-                <button
-                  type="submit"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "6px 14px",
-                    borderRadius: "8px",
-                    border: "none",
-                    cursor: "pointer",
-                    backgroundColor: "#008060",
-                    color: "#ffffff",
-                    fontSize: "14px",
-                    fontWeight: 500,
-                  }}
-                >
-                  Зберегти
-                </button>
+                Як це працює
+              </h2>
+              <p style={{ fontSize: "10px", margin: "0 0 2px 0", color: "#374151" }}>
+                1. Ви задаєте кінцеву дату і час у часовому поясі магазину.
+              </p>
+              <p style={{ fontSize: "10px", margin: "0 0 2px 0", color: "#374151" }}>
+                2. Таймер на вітрині рахує до цієї точки в часі.
+              </p>
+              <p style={{ fontSize: "10px", margin: "0 0 10px 0", color: "#374151" }}>
+                3. Після завершення відліку відображається стан після завершення таймера.
+              </p>
 
-                {actionData?.ok && (
-                  <s-text as="span" variant="bodySm" tone="success">
-                    Збережено.
-                  </s-text>
-                )}
-                {actionData?.ok === false && (
-                  <s-text as="span" variant="bodySm" tone="critical">
-                    {actionData.message}
-                  </s-text>
-                )}
+              <p
+                style={{
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  margin: "0 0 4px 0",
+                  color: "#111827",
+                }}
+              >
+                Важливо перед збереженням
+              </p>
+              <p style={{ fontSize: "10px", margin: "0 0 2px 0", color: "#374151" }}>
+                - Перевірте дату і час, щоб уникнути помилки в старті/фініші акції.
+              </p>
+              <p style={{ fontSize: "10px", margin: "0 0 2px 0", color: "#374151" }}>
+                - Значення зберігається з урахуванням timezone вашого Shopify-магазину.
+              </p>
+              <p style={{ fontSize: "10px", margin: "0 0 2px 0", color: "#374151" }}>
+                - Якщо дату не задано, на вітрині використовується стандартний відлік.
+              </p>
+              <p style={{ fontSize: "10px", margin: 0, color: "#374151" }}>
+                - Стилі елемента змінюються в Customize теми після додавання блоку на сайт.
+              </p>
+            </div>
+
+            <div>
+              <s-text as="span" variant="bodyMd">
+                Дата та час завершення
+              </s-text>
+              <div style={{ marginTop: 8, maxWidth: 260 }}>
+                <input
+                  type="datetime-local"
+                  name="countdownEnd"
+                  defaultValue={defaultValue}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: "8px",
+                    border: "1px solid #d0d0d0",
+                    width: "100%",
+                  }}
+                />
               </div>
-            </s-vertical-stack>
+            </div>
+
+            {countdownEnd && (
+              <s-text as="p" variant="bodySm" tone="subdued">
+                Поточне значення:{" "}
+                {new Date(countdownEnd).toLocaleString(
+                  undefined,
+                  shopTimezone ? { timeZone: shopTimezone } : undefined,
+                )}
+              </s-text>
+            )}
+
+            <div
+              style={{
+                marginTop: "16px",
+                display: "flex",
+                alignItems: "center",
+                gap: "16px",
+              }}
+            >
+              <button
+                type="submit"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "6px 14px",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: "pointer",
+                  backgroundColor: "#008060",
+                  color: "#ffffff",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                }}
+              >
+                Зберегти налаштування таймера
+              </button>
+
+              {actionData?.ok && (
+                <s-text as="span" variant="bodySm" tone="success">
+                  Збережено.
+                </s-text>
+              )}
+              {actionData?.ok === false && (
+                <s-text as="span" variant="bodySm" tone="critical">
+                  {actionData.message}
+                </s-text>
+              )}
+            </div>
           </Form>
         </s-card-section>
       </s-section>
