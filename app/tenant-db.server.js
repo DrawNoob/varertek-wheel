@@ -37,47 +37,20 @@ export async function ensureTenantDatabase(shop) {
 }
 
 export async function getTenantPrisma(shop) {
-  let databaseUrl;
-  try {
-    databaseUrl = await ensureTenantDatabase(shop);
-  } catch (error) {
-    if (shouldFallbackToPrimaryDb()) {
-      console.error(
-        `Tenant DB unavailable for ${shop}. Falling back to primary DB.`,
-        error,
-      );
-      return prisma;
-    }
-    throw error;
-  }
+  const databaseUrl = await ensureTenantDatabase(shop);
 
   if (!tenantPrismaClients.has(shop)) {
-    try {
-      tenantPrismaClients.set(
-        shop,
-        new PrismaClient({
-          datasources: {
-            db: { url: databaseUrl },
-          },
-        }),
-      );
-    } catch (error) {
-      if (shouldFallbackToPrimaryDb()) {
-        console.error(
-          `Tenant Prisma init failed for ${shop}. Falling back to primary DB.`,
-          error,
-        );
-        return prisma;
-      }
-      throw error;
-    }
+    tenantPrismaClients.set(
+      shop,
+      new PrismaClient({
+        datasources: {
+          db: { url: databaseUrl },
+        },
+      }),
+    );
   }
 
   return tenantPrismaClients.get(shop);
-}
-
-function shouldFallbackToPrimaryDb() {
-  return process.env.TENANT_DB_FALLBACK_TO_PRIMARY !== "false";
 }
 
 function toTenantDbName(shop) {

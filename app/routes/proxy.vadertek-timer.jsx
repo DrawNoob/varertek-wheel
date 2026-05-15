@@ -3,15 +3,6 @@
 import { getTenantPrisma } from "../tenant-db.server";
 import { authenticate } from "../shopify.server";
 
-async function safeGetTenantPrisma(shop) {
-  try {
-    return await getTenantPrisma(shop);
-  } catch (error) {
-    console.error(`Failed to get tenant prisma for ${shop}`, error);
-    return null;
-  }
-}
-
 // ------------------------------------------------------------
 // GET → повертає countdown + wheelSegments для фронта
 // ------------------------------------------------------------
@@ -36,16 +27,7 @@ export async function loader({ request }) {
     console.error("APP PROXY LOADER: no shop in session");
   } else {
     try {
-      const prisma = await safeGetTenantPrisma(shop);
-      if (!prisma) {
-        return new Response(
-          JSON.stringify({ ok: false, message: "Tenant DB unavailable" }),
-          {
-            status: 503,
-            headers: { "Content-Type": "application/json" },
-          },
-        );
-      }
+      const prisma = await getTenantPrisma(shop);
       const [countdownRecord, wheel] = await Promise.all([
         prisma.countdownSetting.findUnique({ where: { shop } }),
         prisma.wheelSetting.findUnique({ where: { shop } }),
@@ -117,17 +99,7 @@ export async function action({ request }) {
   }
 
   const intent = body.intent || null;
-  const prisma = await safeGetTenantPrisma(shop);
-  if (!prisma) {
-    return json(
-      {
-        ok: false,
-        message:
-          "Сервіс тимчасово недоступний. Спробуйте ще раз через кілька хвилин.",
-      },
-      503,
-    );
-  }
+  const prisma = await getTenantPrisma(shop);
   // -------------------------------------------------------------------
   // 0) Track analytics events (page views, product clicks, add to cart)
   // -------------------------------------------------------------------
@@ -261,23 +233,6 @@ export async function action({ request }) {
     }
 
     const chosen = segments[winIndex];
-    const discountValueNumber = Number(chosen.discountValue || 0);
-    if (!Number.isFinite(discountValueNumber) || discountValueNumber <= 0) {
-      return json(
-        { ok: false, message: "Некоректний розмір знижки у секторі." },
-        400,
-      );
-    }
-
-    if (
-      chosen.discountType !== "FIXED" &&
-      (discountValueNumber <= 0 || discountValueNumber > 100)
-    ) {
-      return json(
-        { ok: false, message: "Відсоток знижки має бути в межах 0-100." },
-        400,
-      );
-    }
 
     // Генеруємо унікальний промокод
     const code = (
@@ -301,6 +256,21 @@ export async function action({ request }) {
         200,
       );
     }
+
+    const getCollectionIdByHandle = async (handle) => {
+      const resp = await admin.graphql(
+        `#graphql
+        query CollectionByHandle($handle: String!) {
+          collectionByHandle(handle: $handle) {
+            id
+          }
+        }
+      `,
+        { variables: { handle } },
+      );
+      const data = await resp.json();
+      return data?.data?.collectionByHandle?.id || null;
+    };
 
     const getOrCreateCustomerIdByEmail = async (emailValue) => {
       const emailEscaped = emailValue.replace(/["\\]/g, "\\$&");
@@ -425,21 +395,27 @@ export async function action({ request }) {
       }
 
       // CHANGE POINT: HANDLE КОЛЕКЦІЇ ДЛЯ ЗНИЖКИ
-      const normalizedType =
-        chosen.discountType === "FIXED" ? "FIXED" : "PERCENT";
+      const collectionHandle = "sets-cherie";
+      const collectionId = await getCollectionIdByHandle(collectionHandle);
+      if (!collectionId) {
+        return json(
+          { ok: false, message: "Колекція для знижки не знайдена." },
+          200,
+        );
+      }
+      const normalizedType = chosen.discountType === "FIXED" ? "FIXED" : "PERCENT";
+      const valueNumber = Number(chosen.discountValue || 0);
       const discountValueInput =
         normalizedType === "FIXED"
           ? {
               discountAmount: {
-                amount: String(discountValueNumber),
+                amount: String(valueNumber),
                 appliesOnEachItem: false,
               },
             }
           : {
-              percentage: discountValueNumber / 100,
+              percentage: valueNumber / 100,
             };
-
-      const discountItems = { all: true };
 
       const createBasicDiscount = async (customerGetsInput) => {
         const response = await admin.graphql(
@@ -475,12 +451,12 @@ export async function action({ request }) {
 
       const customerGetsForOneTime = {
         value: discountValueInput,
-        items: discountItems,
+        items: { collections: { add: [collectionId] } },
         appliesOnOneTimePurchase: true,
       };
       const customerGetsDefault = {
         value: discountValueInput,
-        items: discountItems,
+        items: { collections: { add: [collectionId] } },
       };
 
       let jsonResp = await createBasicDiscount(customerGetsForOneTime);
