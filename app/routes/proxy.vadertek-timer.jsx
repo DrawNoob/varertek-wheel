@@ -139,7 +139,10 @@ export async function action({ request }) {
   if (intent === "wheelSpin") {
     const hp = String(body.hp || "").trim();
     if (hp) {
-      return json({ ok: false, message: "Підозріла активність." }, 200);
+      console.warn("wheelSpin honeypot filled", {
+        shop,
+        hpLength: hp.length,
+      });
     }
     const email = body.email?.trim() || null;
     const emailRegex =
@@ -395,11 +398,14 @@ export async function action({ request }) {
       }
 
       // CHANGE POINT: HANDLE КОЛЕКЦІЇ ДЛЯ ЗНИЖКИ
-      const collectionHandle = "sets-cherie";
+      const collectionHandle = process.env.WHEEL_COLLECTION_HANDLE || "sets-cherie";
       const collectionId = await getCollectionIdByHandle(collectionHandle);
       if (!collectionId) {
         return json(
-          { ok: false, message: "Колекція для знижки не знайдена." },
+          {
+            ok: false,
+            message: `Колекція для знижки не знайдена (handle: ${collectionHandle}).`,
+          },
           200,
         );
       }

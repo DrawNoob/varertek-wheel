@@ -165,6 +165,11 @@
         return inputValue || attrEmail;
       }
 
+      function getHoneypotValue() {
+        if (!honeypotInput) return "";
+        return String(honeypotInput.value || "").trim();
+      }
+
       function isValidEmail(value) {
         if (!value) return false;
         const email = value.trim();
@@ -274,6 +279,7 @@
         showSuccess("");
 
         try {
+          const hpValue = getHoneypotValue();
           const res = await fetch(PROXY_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -281,7 +287,7 @@
               intent: "wheelSpin",
               email,
               device_type: deviceType,
-              hp: honeypotInput ? honeypotInput.value : "",
+              hp: hpValue,
             }),
           });
 
