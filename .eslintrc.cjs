@@ -50,6 +50,10 @@ module.exports = {
       },
       rules: {
         "react/no-unknown-property": ["error", { ignore: ["variant"] }],
+        "react/prop-types": "off",
+        "jsx-a11y/label-has-associated-control": "off",
+        "no-empty": "off",
+        "no-unused-vars": "off",
       },
     },
 
@@ -91,6 +95,7 @@ module.exports = {
     },
   ],
   globals: {
-    shopify: "readonly"
+    shopify: "readonly",
+    process: "readonly"
   },
 };

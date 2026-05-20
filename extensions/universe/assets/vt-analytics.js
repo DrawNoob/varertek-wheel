@@ -27,7 +27,7 @@
     if (!href) return null;
     try {
       const url = new URL(href, window.location.origin);
-      const match = url.pathname.match(/\/products\/([^\/\?#]+)/i);
+      const match = url.pathname.match(/\/products\/([^/?#]+)/i);
       return match ? match[1] : null;
     } catch {
       return null;
